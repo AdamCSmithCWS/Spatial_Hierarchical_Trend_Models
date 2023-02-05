@@ -25,10 +25,10 @@ data {
   int<lower=1> nyears;
   int<lower=1> fixed_year; //middle year of the time-series scaled to ~(n_years/2)
 
-  int<lower=0> count[ncounts];              // count observations
-  int<lower=1> strat[ncounts];               // strata indicators
-  int<lower=1> year[ncounts]; // year index
-  int<lower=1> site[ncounts]; // site index
+  array[ncounts] int<lower=0> count;              // count observations
+  array[ncounts] int<lower=1> strat;               // strata indicators
+  array[ncounts] int<lower=1> year; // year index
+  array[ncounts] int<lower=1> site; // site index
   
  array[nstrata] int<lower=1> nsites_strata; // number of sites in each stratum
  int<lower=0> maxnsites_strata; //largest value of nsites_strata
@@ -165,14 +165,7 @@ model {
   ste_raw ~ std_normal();//site effects
   sum(ste_raw) ~ normal(0,0.001*nsites);
  
- for(s in 1:nstrata){
 
-  yeareffect_raw[s,] ~ std_normal();
-  //soft sum to zero constraint on year effects within a stratum
-  sum(yeareffect_raw[s,]) ~ normal(0,0.001*nyears);
-  
- }
-  
   BETA_raw ~ std_normal();// prior on fixed effect mean GAM parameters
   //sum to zero constraint
   // not necessary because built into the basis function
@@ -195,7 +188,7 @@ for(t in 1:(n_years_m1)){
 
  generated quantities {
 
-   real<lower=0> n[nstrata,nyears];
+   array[nstrata,nyears] real<lower=0> n; //full annual indices
   // vector[ncounts] log_lik; // alternative value to track the observervation level log-likelihood
   // potentially useful for estimating loo-diagnostics, such as looic
   
@@ -216,7 +209,7 @@ for(y in 1:nyears){
   real ste = sdste*ste_raw[ste_mat[s,t]]; // site intercepts
 
 
-      n_t[t] = exp(strata[s] + yeareffect[s,y] + ste);
+      n_t[t] = exp(strata + yeareffect[s,y] + ste);
         }
         n[s,y] = mean(n_t) * nonzeroweight[s]; //mean of exponentiated predictions across sites in a stratum
         //using the mean of hte exponentiated values, instead of including the log-normal
