@@ -4,18 +4,6 @@
 // Consider moving annual index calculations outside of Stan to 
 // facilitate the ragged array issues
 
-// iCAR function, from Morris et al. 2019
-// Morris, M., K. Wheeler-Martin, D. Simpson, S. J. Mooney, A. Gelman, and C. DiMaggio (2019). 
-// Bayesian hierarchical spatial models: Implementing the Besag York Mollié model in stan. 
-// Spatial and Spatio-temporal Epidemiology 31:100301.
-
- functions {
-   real icar_normal_lpdf(vector bb, int ns, array[] int n1, array[] int n2) {
-     return -0.5 * dot_self(bb[n1] - bb[n2])
-       + normal_lpdf(sum(bb) | 0, 0.001 * ns); //soft sum to zero constraint on bb
-  }
- }
-
 
 
 data {
@@ -32,14 +20,10 @@ data {
  array[nstrata] int<lower=1> nsites_strata; // number of sites in each stratum
  int<lower=0> maxnsites_strata; //largest value of nsites_strata
 
-  array[nstrata,maxnsites_strata] int<lower=1> ste_mat; //matrix identifying which sites are in each stratum
+  array[nstrata,maxnsites_strata] int<lower=0> ste_mat; //matrix identifying which sites are in each stratum
   // above is actually a ragged array, but filled with 0 values so that it works
   // but throws an error if an incorrect strata-site combination is called
  
-  // spatial neighbourhood information
-  int<lower=1> n_edges;
-  array [n_edges] int<lower=1, upper=n_strata> node1;  // node1[i] adjacent to node2[i]
-  array [n_edges] int<lower=1, upper=n_strata> node2;  // and node1[i] < node2[i]
 
   // CBC effort values - party_hours scaled to the mean across all surveys (party_hours/mean(party_hours))
   vector[ncounts] hours;
@@ -179,8 +163,8 @@ for(s in 1:nstrata){
 
  generated quantities {
 
-   array[n_strata,n_years] real<lower=0> n;
-   array[n_strata,n_years] real<lower=0> n_smooth;
+   array[nstrata,nyears] real<lower=0> n;
+   array[nstrata,nyears] real<lower=0> nsmooth;
   // vector[ncounts] log_lik; // alternative value to track the observervation level log-likelihood
   // potentially useful for estimating loo-diagnostics, such as looic
   
@@ -193,8 +177,8 @@ for(y in 1:nyears){
 
       for(s in 1:nstrata){
 
-  array[n_obs_sites_strata[s]] real n_t;
-  array[n_obs_sites_strata[s]] real n_smooth_t;
+  array[nsites_strata[s]] real n_t;
+  array[nsites_strata[s]] real nsmooth_t;
   real retrans_yr = 0.5*(sdyear[s]^2);
   real strata = (sdstrata*strata_raw[s]) + STRATA;
   

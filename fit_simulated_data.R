@@ -28,7 +28,9 @@ for(ma in MAs){
 
     fit <- run_model(preped_model,
                      refresh = 200,
-                     adapt_delta = 0.8,
+                     adapt_delta = 0.9,
+                     iter_warmup = 1500,
+                     iter_sampling = 2000,
                      output_basename = paste(species,model,model_variant,ma_f,sep = "_"),
                      output_dir = "output")
 

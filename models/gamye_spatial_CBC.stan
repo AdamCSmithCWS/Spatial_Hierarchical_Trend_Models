@@ -32,14 +32,14 @@ data {
  array[nstrata] int<lower=1> nsites_strata; // number of sites in each stratum
  int<lower=0> maxnsites_strata; //largest value of nsites_strata
 
-  array[nstrata,maxnsites_strata] int<lower=1> ste_mat; //matrix identifying which sites are in each stratum
+  array[nstrata,maxnsites_strata] int<lower=0> ste_mat; //matrix identifying which sites are in each stratum
   // above is actually a ragged array, but filled with 0 values so that it works
   // but throws an error if an incorrect strata-site combination is called
  
   // spatial neighbourhood information
-  int<lower=1> n_edges;
-  array [n_edges] int<lower=1, upper=n_strata> node1;  // node1[i] adjacent to node2[i]
-  array [n_edges] int<lower=1, upper=n_strata> node2;  // and node1[i] < node2[i]
+  int<lower=1> N_edges;
+  array [N_edges] int<lower=1, upper=nstrata> node1;  // node1[i] adjacent to node2[i]
+  array [N_edges] int<lower=1, upper=nstrata> node2;  // and node1[i] < node2[i]
 
   // CBC effort values - party_hours scaled to the mean across all surveys (party_hours/mean(party_hours))
   vector[ncounts] hours;

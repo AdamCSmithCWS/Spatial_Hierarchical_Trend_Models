@@ -80,7 +80,7 @@ data_prep <- data_1 %>%
 # CBC circles -------------------------------------------------------------
 
 
-nsites = max(sites_df$circle_vec)
+nsites = max(data_prep$circle_vec)
 
 # list of site and strat combos
 sites_df <- data_prep %>% 
@@ -213,7 +213,7 @@ stanfit <- model$sample(
   chains=4, 
   iter_sampling=1000,
   iter_warmup=1000,
-  parallel_chains = 3,
+  parallel_chains = 4,
   #pars = parms,
   adapt_delta = 0.8,
   max_treedepth = 14,
@@ -260,11 +260,12 @@ init_def <- function(){ list(strata_raw = rnorm(nstrata,0,0.1),
                              B = 0,
                              P = 0,
                              sdste = runif(1,0.01,0.2),
-                             sdbeta = runif(1,0.01,0.1),
-                             sdBETA = runif(nstrata,0.01,0.1),
+                             sdbeta = runif(nstrata,0.01,0.1),
+                             sdBETA = runif(1,0.01,0.1),
                              sdyear = runif(nstrata,0.01,0.1),
                              BETA_raw = rnorm(nknots_year,0,0.1),
                              beta_raw = matrix(rnorm(nknots_year*nstrata,0,0.01),nrow = nstrata,ncol = nknots_year))}
+
 
 stanfit <- model$sample(
   data=stan_data,
@@ -272,7 +273,7 @@ stanfit <- model$sample(
   chains=4, 
   iter_sampling=1000,
   iter_warmup=1000,
-  parallel_chains = 3,
+  parallel_chains = 4,
   #pars = parms,
   adapt_delta = 0.8,
   max_treedepth = 14,
@@ -402,13 +403,10 @@ stanfit <- model$sample(
   #seed = 123,
   init = init_def)
 
-stanfit$save_object(paste0("output/fit_CBC_spatial_first_diff.rds"))
-saveRDS(stan_data,paste0("output/datalist_CBC_spatial_first_diff.rds"))
+stanfit$save_object(paste0("output/fit_CBC_hier_first_diff.rds"))
+saveRDS(stan_data,paste0("output/datalist_CBC_hier_first_diff.rds"))
 
 
-
-stanfit$save_object(paste0("output/fit_CBC_hier_gamye.rds"))
-saveRDS(stan_data,paste0("output/datalist_CBC_hier_gamye.rds"))
 
 
 
