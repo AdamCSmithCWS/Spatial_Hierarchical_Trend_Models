@@ -325,9 +325,9 @@ init_def <- function(){ list(strata_raw = rnorm(nstrata,0,0.1),
                              P = 0,
                              sdste = runif(1,0.01,0.2),
                              sdbeta = runif(1,0.01,0.1),
-                             sdBETA = runif(nyears,0.01,0.1),
-                             BETA_raw = rnorm(nknots_year,0,0.1),
-                             beta_raw = matrix(rnorm(nknots_year*nstrata,0,0.01),nrow = nstrata,ncol = nknots_year))}
+                             sdBETA = runif(1,0.01,0.1),
+                             BETA_raw = rnorm(nyears-1,0,0.1),
+                             beta_raw = matrix(rnorm((nyears-1)*nstrata,0,0.01),nrow = nstrata,ncol = nyears-1))}
 
 stanfit <- model$sample(
   data=stan_data,
@@ -342,6 +342,75 @@ stanfit <- model$sample(
   #seed = 123,
   init = init_def)
 
+stanfit$save_object(paste0("output/fit_CBC_spatial_first_diff.rds"))
+saveRDS(stan_data,paste0("output/datalist_CBC_spatial_first_diff.rds"))
+
+
+
+
+
+
+
+
+
+# hierarchical non spatial first difference ------------------------------------------
+
+stan_data[["N_edges"]] <- NULL
+stan_data[["node1"]] <- NULL
+stan_data[["node2"]] <- NULL
+
+
+
+
+
+mod.file = "models/first_diff_hier_CBC.stan"
+
+## compile model
+model <- cmdstan_model(mod.file, stanc_options = list("Oexperimental"))
+
+
+# Initial Values ----------------------------------------------------------
+
+
+init_def <- function(){ list(strata_raw = rnorm(nstrata,0,0.1),
+                             STRATA = 0,
+                             sdstrata = runif(1,0.01,0.1),
+                             ste_raw = rnorm(nsites,0,0.1),
+                             sdnoise = runif(1,0.01,0.2),
+                             sdb = runif(1,0.01,0.1),
+                             sdp = runif(1,0.01,0.1),
+                             b_raw = rnorm(nstrata,0,0.01),
+                             p_raw = rnorm(nstrata,0,0.01),
+                             B = 0,
+                             P = 0,
+                             sdste = runif(1,0.01,0.2),
+                             sdbeta = runif(1,0.01,0.1),
+                             sdBETA = runif(1,0.01,0.1),
+                             BETA_raw = rnorm(nyears-1,0,0.1),
+                             beta_raw = matrix(rnorm((nyears-1)*nstrata,0,0.01),nrow = nstrata,ncol = nyears-1))}
+
+stanfit <- model$sample(
+  data=stan_data,
+  refresh=200,
+  chains=4, 
+  iter_sampling=1000,
+  iter_warmup=1000,
+  parallel_chains = 4,
+  #pars = parms,
+  adapt_delta = 0.8,
+  max_treedepth = 14,
+  #seed = 123,
+  init = init_def)
+
+stanfit$save_object(paste0("output/fit_CBC_spatial_first_diff.rds"))
+saveRDS(stan_data,paste0("output/datalist_CBC_spatial_first_diff.rds"))
+
+
+
 stanfit$save_object(paste0("output/fit_CBC_hier_gamye.rds"))
 saveRDS(stan_data,paste0("output/datalist_CBC_hier_gamye.rds"))
+
+
+
+
 
