@@ -147,7 +147,7 @@ model {
   
 
   ste_raw ~ std_normal();//site effects
-  sum(ste_raw) ~ normal(0,0.001*nsites);
+  //sum(ste_raw) ~ normal(0,0.001*nsites);
  
  for(s in 1:nstrata){
 

@@ -13,7 +13,7 @@ models <- c("gamye","first_diff")
 model_variants <- c("hier","spatial")
 
 
-for(ma in MAs){
+for(ma in MAs[-5]){
   
   
   log_ma <- round(log(ma),2)
@@ -38,5 +38,20 @@ for(ma in MAs){
 }
 
 
+inds <- generate_indices(fit,
+                         regions = c("continent",
+                                     "stratum",
+                                     "prov_state"))
+trajs <- plot_indices(inds)
+trends <- generate_trends(inds,
+                          min_year = 1995,
+                          max_year = 2021)
+map <- bbsBayes2::plot_map(trends)
+print(map)
 
+print(trajs[[1]])
 
+geof <- plot_geofacet(inds,
+                      add_observed_means = FALSE,
+                      multiple = TRUE)
+print(geof)
