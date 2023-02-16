@@ -1,20 +1,6 @@
 // This is a full hierarchical GAM time-series, with spatial gam parameters 
 // as well as a gam-based Seasonal adjustment and sruvey-wide random year-effects
 
-// iCAR function, from Morris et al. 2019
-// Morris, M., K. Wheeler-Martin, D. Simpson, S. J. Mooney, A. Gelman, and C. DiMaggio (2019). 
-// Bayesian hierarchical spatial models: Implementing the Besag York Mollié model in stan. 
-// Spatial and Spatio-temporal Epidemiology 31:100301.
-
- functions {
-   real icar_normal_lpdf(vector bb, int ns, array[] int n1, array[] int n2) {
-     return -0.5 * dot_self(bb[n1] - bb[n2])
-       + normal_lpdf(sum(bb) | 0, 0.001 * ns); //soft sum to zero constraint on bb
-  }
- }
-
-
-
 
 data {
   int<lower=1> nsites;
@@ -28,12 +14,7 @@ data {
   array[ncounts] int<lower=1> site; // site index
  
  
-  // spatial neighbourhood information
-  int<lower=1> N_edges;
-  array [N_edges] int<lower=1, upper=nstrata> node1;  // node1[i] adjacent to node2[i]
-  array [N_edges] int<lower=1, upper=nstrata> node2;  // and node1[i] < node2[i]
 
-  
   //indexes for re-scaling predicted counts within strata based on site-level intercepts
  array[nstrata] int<lower=0> nsites_strata; // number of sites in each stratum
  int<lower=0> maxnsites_strata; //largest value of nsites_strata
@@ -67,7 +48,7 @@ parameters {
   
   real<lower=0> sdnoise;    // sd of over-dispersion
   real<lower=0> sdste;    // sd of site effects
-  array[nknots_year] real<lower=0> sdbeta;    // sd of GAM coefficients among strata 
+  array[nstrata] real<lower=0> sdbeta;    // sd of GAM coefficients among strata 
   //real<lower=0> sdbeta;    // sd of GAM coefficients among strata 
   real<lower=0> sdBETA;    // sd of GAM coefficients
   real<lower=0> sdyear;    // sd of year effects
@@ -96,18 +77,17 @@ transformed parameters {
   real<lower=0> phi; //transformed sdnoise - precision parameter Neg Binomial
 
 
-  // if(use_pois){
-  //   phi = 0;
-  // }else{
+
     phi = 1/sqrt(sdnoise); //as recommended to avoid prior that places most prior mass at very high overdispersion by https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations
-  //}
+
  
   BETA = sdBETA*BETA_raw;
   
-  for(k in 1:nknots_year){
-    beta[,k] = (sdbeta[k] * beta_raw[,k]) + BETA[k];
-  }
-  SMOOTH_pred = year_basis * BETA; 
+ for(s in 1:nstrata){
+    beta[s,] = (sdbeta[s] * beta_raw[s,]) + transpose(BETA);
+  } 
+  
+    SMOOTH_pred = year_basis * BETA; 
   
       for(s in 1:nstrata){
      smooth_pred[,s] = year_basis * transpose(beta[s,]);
@@ -144,8 +124,8 @@ model {
 
 
  // sdbeta ~ normal(0,1); //prior on sd of gam hyperparameters
-  sdbeta ~ gamma(2,2);//boundary avoiding prior 
-  //sdbeta ~ student_t(3,0,1);// prior on spatial variation of spline parameters 
+  //sdbeta ~ gamma(2,2);//boundary avoiding prior 
+  sdbeta ~ student_t(10,0,1);// prior on spatial variation of spline parameters 
   
   sdseason ~ std_normal();//variance of GAM parameters
   beta_raw_season_1 ~ std_normal();//GAM parameters
@@ -157,8 +137,8 @@ model {
   sum(yeareffect_raw) ~ normal(0,0.001*nyears);//sum to zero constraint on year-effects
 
   
-for(k in 1:nknots_year){
-    beta_raw[,k] ~ icar_normal(nstrata, node1, node2);
+for(s in 1:nstrata){
+    beta_raw[s,] ~ std_normal();
 }
  
    //count ~ poisson_log(E); //vectorized count likelihood altnernate overdispersed poisson

@@ -299,9 +299,10 @@ year_basis = GAM_year$Year_basis
     refresh=200,
     chains=4, 
     iter_warmup=2000,
-    iter_sampling=2000,
+    iter_sampling=6000,
     parallel_chains = 4,
     #pars = parms,
+    thin = 3,
     adapt_delta = 0.8,
     max_treedepth = 14,
     #seed = 123,
@@ -312,4 +313,76 @@ year_basis = GAM_year$Year_basis
   
   
 
+  
+  
+  
+  
+  
+  
+  
+
+# Non spatial model -------------------------------------------------------
+
+  stan_data[["N_edges"]] <- NULL
+  
+  stan_data[["node1"]] <- NULL
+  stan_data[["node2"]] <- NULL
+  
+  
+  
+  mod.file = "models/GAMYE_shorebird_NonSpatial_two_season.stan"
+  
+  
+  init_def <- function(){ list(ste_raw = rnorm(stan_data$nsites,0,0.1),
+                               STRATA = 3,
+                               yeareffect_raw = rnorm(stan_data$nyears,0,0.1),
+                               beta_raw_season_1 = rnorm(stan_data$ndays,0,0.1),
+                               beta_raw_season_2 = rnorm(stan_data$ndays,0,0.1),
+                               sdnoise = 0.01,
+                               sdste = 0.1,
+                               sdBETA = 1,
+                               sdbeta = runif(stan_data$nstrata,0.1,0.2),
+                               sdseason = c(0.1,0.1),
+                               sdyear = 0.1,
+                               BETA_raw = rnorm(stan_data$nknots_year,0,0.1),
+                               beta_raw = matrix(rnorm(stan_data$nknots_year*stan_data$nstrata,0,0.01),
+                                                 nrow = stan_data$nstrata,ncol = stan_data$nknots_year))}
+  
+  
+  
+  
+  # Fit model ---------------------------------------------------------------
+  
+  
+  output_dir <- "output/"
+  out_base <- paste0(species_f,"_Hier_Shorebird")
+  
+
+  
+  
+  print(paste("beginning Hier",species,"with",nstrata,"strata",Sys.time()))
+  
+  
+  ## compile model
+  model <- cmdstan_model(mod.file, stanc_options = list("Oexperimental"))
+  
+  
+  stanfit <- model$sample(
+    data=stan_data,
+    refresh=200,
+    chains=4, 
+    iter_warmup=2000,
+    iter_sampling=6000,
+    parallel_chains = 4,
+    #pars = parms,
+    thin = 3,
+    adapt_delta = 0.8,
+    max_treedepth = 14,
+    #seed = 123,
+    init = init_def)
+  
+  stanfit$save_object(paste0("output/fit_Shorebird_Hier_GAMYE.rds"))
+  saveRDS(stan_data,paste0("output/datalist_Shorebird_Hier_GAMYE.rds"))
+  
+  
 

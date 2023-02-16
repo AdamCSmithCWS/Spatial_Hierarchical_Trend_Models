@@ -1,11 +1,12 @@
 
 setwd("C:/GitHub/Spatial_hierarchical_trend_models")
+setwd( "C:/Users/SmithAC/Documents/GitHub/Spatial_Hierarchical_Trend_Models")
 
 library(bbsBayes2)
 library(tidyverse)
 
 species <- "Yellow-headed Blackbird"
-species <- "Pacific Wren"
+#species <- "Pacific Wren"
 
 stratification <- "bbs_usgs"
 models = c("gamye","first_diff")
