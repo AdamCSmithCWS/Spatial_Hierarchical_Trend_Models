@@ -119,7 +119,7 @@ transformed parameters {
 // second half of time-series - runs forwards from fixed_year
    for(t in Iy2){
     beta[,t] = (sdbeta * beta_raw[,t-1]) + BETA[t-1];//t-1 indicators to match dimensionality
-    yeareffect[,t] = yeareffect[,t-1] + beta[,t];
+    yeareffect[,t] = yeareffect[,t-1] + beta[,t];// last-years value plus
     YearEffect[t] = YearEffect[t-1] + BETA[t-1];
   }
 
@@ -167,9 +167,7 @@ model {
  
 
   BETA_raw ~ std_normal();// prior on fixed effect mean GAM parameters
-  //sum to zero constraint
-  // not necessary because built into the basis function
-  //sum(BETA_raw) ~ normal(0,0.001*nknots_year);
+
   
   STRATA ~ std_normal();// prior on fixed effect mean intercept
 
