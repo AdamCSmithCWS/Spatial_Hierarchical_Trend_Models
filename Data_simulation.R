@@ -122,7 +122,8 @@ vis_trajs <- ggplot(strata_base_trajs,
 
 print(vis_trajs)
 
-
+saveRDS(strata_base_trajs,
+        "data/simulated_data_true_trajectories.rds")
 
 
 #MAs <- round(log(c(1,5,10,20,50)),2)

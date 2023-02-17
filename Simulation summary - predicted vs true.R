@@ -6,16 +6,46 @@ library(bbsBayes2)
 library(tidyverse)
 
 
+strata_base_trajs <- readRDS("data/simulated_data_true_trajectories.rds")
+
+true_trajectories <- strata_base_trajs %>% 
+  select(strata_name,
+         year,
+         expected_count)
+
+
+species = "simulated"
+
+MAs <- c(0.1,0.5,1,5,10)
+
+models <- c("gamye","first_diff")
+model_variants <- c("hier","spatial")
 
 
 
 
+model <- models[1]
+model_variant <- model_variants[1]
 
 # Explore predicted vs true trajectories and trends for simulations -----------------------
 
 for(ma in MAs){
-  mean_ab <- signif(exp(ma),2)
-  load(paste0("Data/Simulated_data_",ma,"_breakpoint_cycle_BBS.RData"))
+  
+  log_ma <- round(log(ma),2)
+  ma_f <- gsub(as.character(ma),pattern = ".",replacement = "-",
+               fixed = TRUE)
+  
+  
+
+# load fitted estimates ---------------------------------------------------
+  fit <- readRDS(paste0("output/",paste(species,model,model_variant,ma_f,sep = "_"),".rds"))
+  
+  
+
+# load true parameter estimates -------------------------------------------
+
+  
+  
   realized_strata_map = strata_map
   
   strat_grid <- geofacet::grid_auto(realized_strata_map,
