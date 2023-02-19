@@ -6,6 +6,8 @@ library(bbsBayes2)
 library(tidyverse)
 
 
+# load true parameter estimates -------------------------------------------
+
 strata_base_trajs <- readRDS("data/simulated_data_true_trajectories.rds")
 
 true_trajectories <- strata_base_trajs %>% 
@@ -13,6 +15,40 @@ true_trajectories <- strata_base_trajs %>%
          year,
          expected_count)
 
+
+#trend function from ratio of indices to %/year
+texp <- function(x,ny = 2019-1974){
+  (x^(1/ny)-1)*100
+}
+
+true_trends <- NULL
+tlengths <- c(5,10,20,50)
+for(ny in tlengths){
+  y2s <- c(max(true_trajectories$year):(min(true_trajectories$year)+ny))
+for(y2 in y2s){
+  y1 <- y2 - ny
+
+  
+  tmpt <- true_trajectories %>% 
+    filter(year %in% c(y1,y2)) %>% 
+    pivot_wider(names_from = year,
+                values_from = expected_count,
+                names_prefix = "Y") %>% 
+    rename_with(., ~gsub(replacement = "start",
+                         pattern = paste0("Y",y1),.x,
+                         fixed = TRUE))%>% 
+    rename_with(., ~gsub(replacement = "end",
+                         pattern = paste0("Y",y2),.x,
+                         fixed = TRUE)) %>% 
+    mutate(true_trend = texp(end/start,ny),
+           start_year = y1,
+           end_year = y2) %>% 
+    select(strata_name,start_year,end_year,true_trend)
+  
+  true_trends <- bind_rows(true_trends,tmpt)
+  
+}
+}
 
 species = "simulated"
 
@@ -40,11 +76,48 @@ for(ma in MAs){
 # load fitted estimates ---------------------------------------------------
   fit <- readRDS(paste0("output/",paste(species,model,model_variant,ma_f,sep = "_"),".rds"))
   
-  
-
-# load true parameter estimates -------------------------------------------
 
   
+
+# estimate trends and trajectories ----------------------------------------
+
+inds <- generate_indices(fit,
+                         regions = "stratum")
+  
+  estimated_trends <- NULL
+  for(ny in tlengths){
+    y2s <- c(max(inds$indices$year):(min(inds$indices$year)+ny))
+    for(y2 in y2s){
+      y1 <- y2 - ny
+      
+      trend <- generate_trends(inds,
+                               min_year = y1,
+                               max_year = y2,
+                               quantiles = c(0.05,0.95))
+      
+  estimated_trends <- bind_rows(estimated_trends,
+                                trend$trends)
+    
+  
+    }
+    
+  }
+    
+  
+  
+
+# merge estimated and true ------------------------------------------------
+
+trend_comp <- estimated_trends %>% 
+    left_join(.,true_trends,
+              by = c("start_year","end_year",
+                     "region" = "strata_name"))
+  
+  
+  
+ 
+  
+   
   
   realized_strata_map = strata_map
   
