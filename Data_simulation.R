@@ -98,27 +98,29 @@ print(vis_pdo)
 
 ## Generate stratum smooths and intercepts ----------------------------------------
 # latitudinal variation in the slopes
-SLOPE_1 = -0.005# ~ 1.5%/year increase in north and stable in south
+SLOPE_1 = 0.015# ~ 1.5%/year increase in north and stable in south
 
 ### use simple, smooth, x-y coordinate variation in betas and stratas
 
+set.seed(2019)
+random_year_effects <- rnorm(length(min_year:2021)*length(base_map$strata_name),0,0.05) 
 strata_base_trajs <- base_map %>%
   sf::st_set_geometry(.,NULL) %>%
   expand_grid(.,year = min_year:2021) %>% 
   left_join(.,pdo_ann,by = "year") %>% 
   mutate(year_centered = year-1995,
-         slope = SLOPE_1*south,
-         pdo_str = annual_mean_pdo*0.2,
-         pdo_smooth = loess_mean_pdo*0.2*north,
-         intercept = (y_scale*0.5),
+         slope = SLOPE_1*sqrt(north),
+         pdo_str = annual_mean_pdo*0.05 + random_year_effects,
+         pdo_smooth = loess_mean_pdo*0.1*(north),
+         intercept = (south*0.5),
          expected_strata = intercept + slope*year_centered + pdo_smooth  + pdo_str, 
          expected_count = exp(expected_strata))
 
 
 vis_trajs <- ggplot(strata_base_trajs,
                     aes(x = year,y = expected_strata))+
-  geom_line(aes(group = strata_name,colour = strata_name))+
-  scale_colour_viridis_d()
+  geom_line(aes(group = strata_name,colour = north))+
+  scale_colour_viridis_c()
 
 print(vis_trajs)
 
@@ -137,11 +139,19 @@ for(ma in MAs){
   log_ma <- round(log(ma),2)
   ma_f <- gsub(as.character(ma),pattern = ".",replacement = "-",
                fixed = TRUE)
-  site_effects <- rnorm(prep_spat_data$model_data$n_sites,0,0.5)
-  observer_effects <- rnorm(prep_spat_data$model_data$n_observers,0,0.3)
-  sdnoise <- 0.1
-  noise_effects <- rnorm(prep_spat_data$model_data$n_counts,0,sdnoise)
   
+  sd_site <- 0.7
+  set.seed(2019)
+  site_effects <- rnorm(prep_spat_data$model_data$n_sites,0,sd_site)
+  sd_obs <- 0.4
+  set.seed(2019)
+  observer_effects <- rnorm(prep_spat_data$model_data$n_observers,0,sd_obs)
+  sd_noise <- 0.2
+  set.seed(2019)
+  noise_effects <- rnorm(prep_spat_data$model_data$n_counts,0,sd_noise)
+  
+  retrans <- 0.5*(sd_obs^2 + sd_noise^2)
+
   #adjust and select the strata mean log-scale expected values
     strata_base_trajs_2 <- strata_base_trajs %>% 
     mutate(expected_strata = log_ma + intercept + slope*year_centered + pdo_smooth  + pdo_str) %>% 
@@ -149,13 +159,38 @@ for(ma in MAs){
              year,
              expected_strata)
   
-  
+    # # center the site and observer effects within each stratum - just to ensure that the variation in sampling
+    ## through time has minimal effect on the stratum mean counts
+     site_obs_df <- real_data %>% 
+       select(strata_name,site,observer) %>% 
+       distinct() %>% 
+       group_by(strata_name) %>% 
+       mutate(site_eff = as.numeric(scale(site_effects[site],scale = FALSE)),
+               observer_eff = as.numeric(scale(observer_effects[observer],scale = FALSE))) #%>% 
+       # group_by(strata_name) %>% 
+       # summarise(test = mean(site_eff),
+       #           test_obs = mean(observer_eff))
+       
   # link to raw data
   sim_real_data <- real_data %>% 
     left_join(.,strata_base_trajs_2,
               by = c("strata_name","year")) %>% 
-    mutate(expected_log_count = expected_strata + site_effects[site] + observer_effects[observer] + noise_effects)
+    left_join(.,site_obs_df,
+              by = c("strata_name","site","observer")) %>% 
+    mutate(expected_log_count = expected_strata + site_eff + observer_eff + noise_effects)
  
+  mean_nuisance <-sim_real_data %>% 
+    group_by(strata_name) %>% 
+    summarise(mean_site = mean(site_effects[site]),
+              mean_obs = mean(observer_effects[observer]),
+              .groups = "keep")
+  
+  strata_base_trajs_2 <- strata_base_trajs_2 %>% 
+    mutate(expected_mean_count = exp(expected_strata + retrans))
+  
+  saveRDS(strata_base_trajs_2,
+          paste0("data/simulated_data_true_trajectories_",ma_f,".rds"))
+  
   set.seed(2019)
   sim_counts <- rpois(prep_spat_data$model_data$n_counts,exp(sim_real_data$expected_log_count))
   

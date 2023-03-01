@@ -4,18 +4,6 @@
 // Consider moving annual index calculations outside of Stan to 
 // facilitate the ragged array issues
 
-// iCAR function, from Morris et al. 2019
-// Morris, M., K. Wheeler-Martin, D. Simpson, S. J. Mooney, A. Gelman, and C. DiMaggio (2019). 
-// Bayesian hierarchical spatial models: Implementing the Besag York Mollié model in stan. 
-// Spatial and Spatio-temporal Epidemiology 31:100301.
-
- functions {
-   real icar_normal_lpdf(vector bb, int ns, array[] int n1, array[] int n2) {
-     return -0.5 * dot_self(bb[n1] - bb[n2])
-       + normal_lpdf(sum(bb) | 0, 0.001 * ns); //soft sum to zero constraint on bb
-  }
- }
-
 
 
 data {
@@ -47,11 +35,6 @@ data {
   // a vector of zeros to fill fixed beta values for fixed_year
   vector[nstrata] zero_betas;
 
-
-  // spatial neighbourhood information
-  int<lower=1> N_edges;
-  array [N_edges] int<lower=1, upper=nstrata> node1;  // node1[i] adjacent to node2[i]
-  array [N_edges] int<lower=1, upper=nstrata> node2;  // and node1[i] < node2[i]
 
   // CBC effort values - party_hours scaled to the mean across all surveys (party_hours/mean(party_hours))
   vector[ncounts] hours;

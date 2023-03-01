@@ -94,7 +94,7 @@ neighbours_define <- function(real_strata_map = realized_strata_map, #sf map of 
   
   if(voronoi == FALSE){
     #check if input layer is polygon, if not set voronoi to TRUE
-    if(any(grepl("POLYGON",class(working_strata_map$geometry[[1]])))){
+    if(any(grepl("POLYGON",class(working_strata_map$geom[[1]])))){
       
       vintj = arrange(working_strata_map,strat_lab)
       
@@ -185,7 +185,7 @@ neighbours_define <- function(real_strata_map = realized_strata_map, #sf map of 
   
   if(voronoi){
     
-    if(any(grepl("POINT",class(working_strata_map$geometry[[1]])))){
+    if(any(grepl("POINT",class(working_strata_map$geom[[1]])))){
       centres = working_strata_map
       coords = st_coordinates(centres)
     }else{

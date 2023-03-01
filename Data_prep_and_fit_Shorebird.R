@@ -250,7 +250,7 @@ year_basis = GAM_year$Year_basis
     seas_strat = as.integer(unlist(dts$seas_strat)),
     seasons = seasons)
   
-  mod.file = "models/GAMYE_iCAR_shorebird_two_season.stan"
+  mod.file = "models/GAMYE_spatial_shorebird_two_season.stan"
  
 
   init_def <- function(){ list(ste_raw = rnorm(stan_data$nsites,0,0.1),
@@ -299,10 +299,10 @@ year_basis = GAM_year$Year_basis
     refresh=200,
     chains=4, 
     iter_warmup=2000,
-    iter_sampling=6000,
+    iter_sampling=16000,
     parallel_chains = 4,
     #pars = parms,
-    thin = 3,
+    thin = 8,
     adapt_delta = 0.8,
     max_treedepth = 14,
     #seed = 123,
@@ -330,7 +330,7 @@ year_basis = GAM_year$Year_basis
   
   
   
-  mod.file = "models/GAMYE_shorebird_NonSpatial_two_season.stan"
+  mod.file = "models/GAMYE_hier_shorebird_two_season.stan"
   
   
   init_def <- function(){ list(ste_raw = rnorm(stan_data$nsites,0,0.1),
@@ -372,10 +372,10 @@ year_basis = GAM_year$Year_basis
     refresh=200,
     chains=4, 
     iter_warmup=2000,
-    iter_sampling=6000,
+    iter_sampling=16000,
     parallel_chains = 4,
     #pars = parms,
-    thin = 3,
+    thin = 8,
     adapt_delta = 0.8,
     max_treedepth = 14,
     #seed = 123,

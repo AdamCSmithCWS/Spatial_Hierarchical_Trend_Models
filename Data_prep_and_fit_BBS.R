@@ -5,18 +5,18 @@ setwd( "C:/Users/SmithAC/Documents/GitHub/Spatial_Hierarchical_Trend_Models")
 library(bbsBayes2)
 library(tidyverse)
 
-species <- "Yellow-headed Blackbird"
+species <- "Eastern Whip-poor-will"
 #species <- "Pacific Wren"
 
 stratification <- "bbs_usgs"
 models = c("gamye","first_diff")
 
-model_variants <- c("hier","spatial")
+model_variants <- c("nonhier","hier","spatial")
 
 
 for(model in models){
   for(model_variant in model_variants){
-    
+    if(model == "gamye" & model_variant == "nonhier"){next}
 s <- stratify(by = stratification,
               species = species)
 
