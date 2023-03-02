@@ -97,27 +97,61 @@ rhat_fail_summ <- rhat_fail %>%
 
 
 
-# indices and trends ------------------------------------------------------
+# Wood Thrush fine scale demonstration and eBird comparison ------------------------------------
 
-inds <- generate_indices(fit)
-inds_smooth <- generate_indices(fit,
-                                alternate_n = "n_smooth")
+setwd( "C:/Users/SmithAC/Documents/GitHub/Spatial_Hierarchical_Trend_Models")
 
+library(bbsBayes2)
+library(tidyverse)
 
-trends <- generate_trends(inds_smooth)
+species <- "Wood Thrush"
+aou <- search_species(species)$aou #numerical species indicator from BBS database
 
-pdf(paste0("figures/",species,"rolling_shorttrends_spatial.pdf"))
-map <- plot_map(trends)
-print(map)
+stratification <- "latlong"
+models = c("gam","first_diff","gamye")
 
-for(ys in seq(1970,2016,by = 5)){
-  tt <- generate_trends(inds_smooth,
-                        min_year = ys,
-                        max_year = ys + 10)
-  print(plot_map(tt))
+model_variant <- "spatial"
+
+for(model in models){
+  
+  
+  
+  s <- stratify(by = stratification,
+                species = species)
+  
+  
+  p <- prepare_data(s,
+                    min_year = 2000)
+  
+    ps <- prepare_spatial(p,
+                          strata_map = load_map(stratification))
+    print(ps$spatial_data$map)
+    
+  
+  
+  
+  pm <- prepare_model(ps,
+                      model = model,
+                      model_variant = model_variant)
+  
+  fit <- run_model(pm,
+                   refresh = 400,
+                   adapt_delta = 0.8,
+                   output_dir = "output",
+                   output_basename = paste(species,model,model_variant,sep = "_"))
+  
+  
+  
+  summ <- get_summary(fit)
+  
+  summ <- summ %>% 
+    mutate(variable_type = stringr::str_extract(variable, "^\\w+"))
+  
+  saveRDS(summ,paste0("output/",aou,"_",model,"_",model_variant,"_param_summary.rds"))
+  
+  
+  
 }
-dev.off()
-
 
 
 

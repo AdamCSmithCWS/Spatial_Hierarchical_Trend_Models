@@ -150,8 +150,8 @@ for(ma in MAs){
   set.seed(2019)
   noise_effects <- rnorm(prep_spat_data$model_data$n_counts,0,sd_noise)
   
-  retrans <- 0.5*(sd_obs^2 + sd_noise^2)
-
+  #retrans <- 0.5*(sd_obs^2 + sd_noise^2)
+  retrans <- 0.5*(sd_obs^2 + sd_noise^2 + sd_site^2)
   #adjust and select the strata mean log-scale expected values
     strata_base_trajs_2 <- strata_base_trajs %>% 
     mutate(expected_strata = log_ma + intercept + slope*year_centered + pdo_smooth  + pdo_str) %>% 

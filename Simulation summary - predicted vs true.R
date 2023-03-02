@@ -10,6 +10,7 @@ library(patchwork)
 
 strata_base_trajs <- readRDS("data/simulated_data_true_trajectories.rds")
 
+
 true_trajectories <- strata_base_trajs %>% 
   select(strata_name,
          year,
@@ -88,7 +89,7 @@ print(tmpp)
 
 species = "simulated"
 
-MAs <- c(0.1,0.5,1,5,10)
+MAs <- c(0.1,1,10)
 
 models <- c("gamye","first_diff")
 model_variants <- c("nonhier","hier","spatial")
@@ -100,7 +101,7 @@ model_variants <- c("nonhier","hier","spatial")
 
 # Explore predicted vs true trajectories and trends for simulations -----------------------
 estimated_trends <- NULL
-for(ma in MAs[c(5,1)]){
+for(ma in MAs){
   for(model in models){
   
 for(model_variant in model_variants){
@@ -126,6 +127,14 @@ inds <- generate_indices(fit,
  
   saveRDS(inds,file = paste0("output/","sim_indices_",ma_f,"_",model,"_",model_variant,".rds")) 
 
+  if(model == "gamye"){
+  inds <- generate_indices(fit,
+                           regions = "stratum",
+                           alternate_n = "n_smooth")
+  
+  saveRDS(inds,file = paste0("output/","sim_indices_smooth_",ma_f,"_",model,"_",model_variant,".rds")) 
+  }
+  
   for(ny in tlengths){
     y2s <- c(max(inds$indices$year):(min(inds$indices$year)+ny))
     for(y2 in y2s){
@@ -168,6 +177,16 @@ non_zero_w <- non_zero_w$raw_data %>%
   select(strata_name,non_zero_weight) %>% 
   distinct()
 
+
+
+# identify the peripheral strata -------------------------------------------
+perif_strata <- strata_base_trajs %>% 
+  select(y_scale,strata_name) %>% 
+  distinct() %>% 
+  filter(abs(y_scale) > 1) %>% 
+  select(strata_name) %>% 
+  unlist()
+
 # merge estimated and true ------------------------------------------------
 
 trend_comp <- estimated_trends %>% 
@@ -189,8 +208,13 @@ trend_comp <- estimated_trends %>%
          first_diff_dif_nonhier_slope = abs_dif_trend_slope_first_diff_nonhier - abs_dif_trend_slope_first_diff_hier,
          first_diff_dif = abs_dif_trend_first_diff_hier - abs_dif_trend_first_diff_spatial,
          first_diff_dif_slope = abs_dif_trend_slope_first_diff_hier - abs_dif_trend_slope_first_diff_spatial,
-         strat_data = ifelse(n_routes > 11,"High","Low"))  #%>% 
-  #filter(start_year < 1975)
+         strat_data = ifelse(n_routes > 11,"High","Low"),
+         peripheral = ifelse(region %in% perif_strata,"Peripheral","Core"))  %>% 
+  filter(mean_true_abundance %in% c(0.1,1,10))
+### add a north-south selection (edge and core distinction - similar and different from mean)
+
+
+
 # 
 # 
 # trend_comp_plot = ggplot(data = trend_comp,
@@ -218,33 +242,67 @@ trend_comp <- estimated_trends %>%
 
 
 trend_comp_plot = ggplot(data = trend_comp,
-                         aes(x = n_years,y = gamye_dif_slope))+
+                         aes(x = n_years,y = gamye_dif))+
   geom_boxplot(aes(group = n_years))+
   coord_cartesian(ylim = c(-1,1))+
-  facet_wrap(vars(mean_true_abundance,strat_data),
-             scales = "free_y")+
+  facet_wrap(vars(mean_true_abundance,peripheral),
+             scales = "free_y",
+             nrow = 3,ncol = 2)+
   geom_hline(yintercept = 0,alpha = 0.5)
 
 trend_comp_plot2 = ggplot(data = trend_comp,
-                         aes(x = n_years,y = first_diff_dif_slope))+
+                         aes(x = n_years,y = first_diff_dif))+
   geom_boxplot(aes(group = n_years))+
   coord_cartesian(ylim = c(-1,1))+
-  facet_wrap(vars(mean_true_abundance,strat_data),
-             scales = "free_y")+
+  facet_wrap(vars(mean_true_abundance,peripheral),
+             scales = "free_y",
+             nrow = 3,ncol = 2)+
   geom_hline(yintercept = 0,alpha = 0.5)
 
 trend_comp_plot3 = ggplot(data = trend_comp,
-                          aes(x = n_years,y = first_diff_dif_nonhier_slope))+
+                          aes(x = n_years,y = first_diff_dif_nonhier))+
   geom_boxplot(aes(group = n_years))+
-  facet_wrap(vars(mean_true_abundance,strat_data))+
+  facet_wrap(vars(mean_true_abundance,peripheral),
+             nrow = 3,ncol = 2)+
   geom_hline(yintercept = 0,alpha = 0.5)
 
 print(trend_comp_plot + trend_comp_plot2 + trend_comp_plot3)
 
 
+##
 
-stratification = "bbs_usgs"
+# 
+# 
+# 
+# trend_comp_sum <- trend_comp %>% 
+#   group_by(strat_data,n_years,mean_true_abundance) %>% 
+#     summarise(.,
+#               mean_gamye = mean(gamye_dif),
+#               se_gamye = sd(gamye_dif)/sqrt(n()),
+#               mean_first_diff_nonhier = mean(first_diff_dif_nonhier),
+#               se_first_diff_nonhier = sd(first_diff_dif_nonhier)/sqrt(n()),
+#               mean_first_diff = mean(first_diff_dif),
+#               se_first_diff = sd(first_diff_dif)/sqrt(n()))
+# 
+# 
+# trend_error_sum <- estimated_trends %>% 
+#   left_join(.,true_trends,
+#             by = c("start_year","end_year",
+#                    "region" = "strata_name")) %>% 
+#   mutate(n_years = end_year-start_year,
+#          abs_dif_trend = abs(trend - true_trend),
+#          abs_dif_trend_slope = abs(trend - true_trend_slope)) %>% 
+#   group_by(model,model_variant,n_years) %>% 
+#   summarise(.,
+#             mean_abs_error = mean(abs_dif_trend),
+#             se_mean_error = sd(abs_dif_trend)/sqrt(n()))
+
 # plot the trajectories ---------------------------------------------------
+
+
+
+inds_out <- NULL
+stratification = "bbs_usgs"
 realized_strata_map <- load_map(stratify_by = stratification) %>% 
   filter(strata_name %in% true_trends$strata_name) 
 
@@ -253,7 +311,7 @@ strat_grid <- geofacet::grid_auto(realized_strata_map,
                                   names = "strata_name",
                                   seed = 2019)
    
-for(ma in MAs[c(5,1)]){
+for(ma in MAs){
   ma_f <- gsub(as.character(ma),pattern = ".",replacement = "-",
                fixed = TRUE)
   log_ma <- round(log(ma),6)
@@ -288,7 +346,7 @@ for(ma in MAs[c(5,1)]){
                     "year" = "year")) %>% 
    mutate(strata_name = region)
   
-
+inds_out <- bind_rows(inds_out,ind_vars)
   
   g_inds <- suppressMessages(ggplot(data = ind_vars,aes(x = year,y = index))+
                                geom_line(aes(x = year,
@@ -330,112 +388,97 @@ for(ma in MAs[c(5,1)]){
 }
 }
 
-# Compare trend estimates -------------------------------------------------
-# 
-# trend_comparison <- NULL
-# 
-# for(ma in MAs){
-#   mean_ab <- signif(exp(ma),2)
-#   load(paste0("Data/Simulated_data_",ma,"_breakpoint_cycle_BBS.RData"))
-#   realized_strata_map = strata_map
-#   
-#   
-#   t_sel <- stratum_trends %>% 
-#     filter(mean_abundance == mean_ab,
-#            data == "BBS") %>% 
-#     mutate(nyears = last_year - first_year)
-#   t_sel$model <- c(rep("Spatial",nrow(t_sel)/2),
-#                    rep("NonSpatial",nrow(t_sel)/2))
-#   
-#   t_sel <- t_sel %>% 
-#     select(Stratum_Factored,first_year,last_year,
-#            nyears, model,
-#            trend,mean_abundance) %>%
-#     distinct() %>% 
-#     pivot_wider(.,names_from = model,
-#                 values_from = trend)
-#   
-#   true_smooth <- log_true_traj %>% 
-#     select(Stratum,Stratum_Factored,
-#            Year, True_scaled_smooth)
-#   tr_yrs <- t_sel %>% 
-#     select(first_year,last_year) %>% 
-#     distinct()
-#   
-#   true_trends <- NULL
-#   for(j in 1:nrow(tr_yrs)){
-#     y1 <- as.numeric(tr_yrs[j,1])
-#     y2 <- as.numeric(tr_yrs[j,2])
-#     ny = y2-y1
-#     
-#     tmpt <- true_smooth %>% 
-#       filter(Year %in% c(y1,y2)) %>% 
-#       pivot_wider(names_from = Year,
-#                   values_from = True_scaled_smooth,
-#                   names_prefix = "Y") %>% 
-#       rename_with(., ~gsub(replacement = "start",
-#                            pattern = paste0("Y",y1),.x,
-#                            fixed = TRUE))%>% 
-#       rename_with(., ~gsub(replacement = "end",
-#                            pattern = paste0("Y",y2),.x,
-#                            fixed = TRUE)) %>% 
-#       mutate(true_trend = texp(end/start,ny),
-#              first_year = y1,
-#              last_year = y2) %>% 
-#       select(Stratum,Stratum_Factored,first_year,last_year,true_trend)
-#     
-#     true_trends <- bind_rows(true_trends,tmpt)
-#     
-#   }
-#   
-#   t_sel <- left_join(t_sel,true_trends,
-#                      by = c("Stratum_Factored",
-#                             "first_year",
-#                             "last_year"))
-#   
-#   t_sel <- t_sel %>% 
-#     mutate(Spatial_error = abs(Spatial - true_trend),
-#            NonSpatial_error = abs(`NonSpatial` - true_trend),
-#            dif_error = Spatial_error - NonSpatial_error)
-#   
-#   trend_comparison <- bind_rows(trend_comparison,t_sel)
-# }
-# 
-# 
-# mean_dif <- trend_comparison %>% 
-#   group_by(nyears,mean_abundance) %>% 
-#   summarise(mean_dif = mean(dif_error),
-#             sd_dif = sd(dif_error),
-#             lq = quantile(dif_error,0.05),
-#             uq = quantile(dif_error,0.95),
-#             lci = mean_dif-(1.96*sd_dif),
-#             uci = mean_dif+(1.96*sd_dif))
-# 
-# mns <- ggplot(data = mean_dif,aes(x = nyears,y = mean_dif))+
-#   geom_errorbar(aes(ymin = lq,ymax = uq),
-#                 alpha = 0.3,
-#                 width = 0)+
-#   geom_point()+
-#   facet_wrap(vars(mean_abundance),
-#              nrow = 2,
-#              ncol = 3)
-# 
-# print(mns)
-# trend_comparison$nyearsF <- factor(trend_comparison$nyears)
-# box <- ggplot(data = trend_comparison,
-#               aes(y = dif_error,x = nyearsF))+
-#   geom_boxplot(alpha = 0.5)+
-#   facet_wrap(vars(mean_abundance),
-#              nrow = 2,
-#              ncol = 3,
-#              scales = "free_y")+
-#   ylab("Difference absolute error in trends Spatial - Non-spatial")+
-#   xlab("Length of trend (number of years)")+
-#   geom_abline(slope = 0,intercept = 0,colour = "blue")+
-#   theme_bw()
-# pdf("Figures/Figure_5.pdf",
-#     width = 7,
-#     height = 8)
-# print(box)
-# dev.off()
-# 
+
+saveRDS(inds_out,"output/all_saved_true_estimated_indices.rds")
+
+
+
+
+# Simulation_trajectory ---------------------------------------------------
+
+
+#### add the smooth componennt to the gam side of the graph (just the lines in the same 
+####  model colours)
+ind_smooth <- NULL
+for(model_variant in model_variants[2:3]){
+  inds <- readRDS(paste0("output/","sim_indices_smooth_",1,"_","gamye","_",model_variant,".rds"))
+  
+  inds <- inds$indices %>% 
+    mutate(model = "gamye",
+           model_variant = model_variant)
+  
+  ind_smooth <- bind_rows(ind_smooth,
+                        inds)
+  
+}
+
+ind_smooth <- ind_smooth %>% 
+  filter(region %in% c("US-AK-5","CA-AB-10","US-CA-15")) %>% 
+  mutate(strata_name = factor(region,levels = c("US-AK-5","CA-AB-10","US-CA-15"),
+                              ordered = TRUE),
+         model_plot = ifelse(model == "first_diff","First Difference","GAMYE")) %>% 
+  left_join(.,model_variant_names,
+            by = "model_variant")
+
+model_variant_names = data.frame("model_variant" = model_variants,
+                         variant_plot = factor(c("Non-hierarchical","Hierarchical",
+                                                 "Spatial"),
+                                               levels = c("Non-hierarchical","Hierarchical",
+                                                          "Spatial"),
+                                               ordered = TRUE))
+inds_plot <- inds_out %>% 
+  filter(strata_name %in% c("US-AK-5","CA-AB-10","US-CA-15"),
+         mean_true_abundance == 1) %>% 
+  mutate(strata_name = factor(strata_name,levels = c("US-AK-5","CA-AB-10","US-CA-15"),
+                              ordered = TRUE),
+         model_plot = ifelse(model == "first_diff","First Difference","GAMYE")) %>% 
+  left_join(.,model_variant_names,
+            by = "model_variant")
+  
+
+
+  
+  inds_demo <- ggplot(data = inds_plot,
+                      aes(x = year,y = index))+
+  geom_line(aes(x = year,
+                y = expected_mean_count),
+            colour = "black",
+            alpha = 0.9,
+            linewidth = 1)+
+    geom_line(aes(colour = variant_plot),
+              linewidth = 1)+
+    #geom_line(data = ind_smooth,
+    #          aes(x = year, y = index,colour = variant_plot),
+    #          linewidth = 0.8,
+    #          linetype = 2)+
+    geom_point(aes(x = year,y = obs_mean),alpha = 0.1,inherit.aes = FALSE)+
+    geom_ribbon(aes(ymin = index_q_0.25,
+                    ymax = index_q_0.75,
+                    fill = variant_plot),
+                alpha = 0.2)+
+    scale_colour_viridis_d(end = 0.8,begin = 0.2,
+                           aesthetics = c("colour","fill"),
+                           direction = -1)+
+    guides( colour = guide_legend(title = "Model Variant"),
+            fill = guide_legend(title = "Model Variant"))+
+    scale_y_continuous(limits = c(0,NA))+
+    facet_grid(scales = "free_y",
+               cols = vars(model_plot),
+               rows = vars(strata_name))+
+    theme_bw()+
+    ylab("Mean annual abundance")+
+    xlab("")+
+    theme(strip.text = element_text(),
+          strip.background = element_blank(),
+          panel.spacing = unit(1.5,"mm"),
+          axis.text.x = element_text(size = 5))
+
+  print(inds_demo)    
+  
+  pdf("figures/Figure_2.pdf",
+      width = 7,
+      height = 5)
+  print(inds_demo)
+  dev.off()
+  
+  

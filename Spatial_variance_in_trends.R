@@ -4,7 +4,7 @@
 library(bbsBayes2)
 library(tidyverse)
 library(patchwork)
-
+source("functions/variance_spatial_pattern.r")
 species <- "Eastern Whip-poor-will"
 
 stratification <- "bbs_usgs"
@@ -32,6 +32,9 @@ model_variants <- c("nonhier","hier","spatial")
 model <- models[1]
 model_variant <- model_variants[3]
 
+pdf("figures/spatial_trend_variance.pdf",
+    width = 11,
+    height = 8.5)
 for(model in models){
   for(model_variant in model_variants){
     
@@ -41,11 +44,12 @@ for(model in models){
     
 
     sdbeta <- fit$model_fit$draws(variables = "sdbeta",
-                                           format = "draws_matrix")  
+                                           format = "draws_matrix") %>% 
+      rowMeans()
     
     
 # identify the draws with high and low SDbeta
-    sd_quartiles <- quantile(sdbeta,c(0.10,0.9))
+    sd_quartiles <- quantile(sdbeta,c(0.05,0.95))
     
     draws_in_left_tails <- which(sdbeta < sd_quartiles[[1]])
     draws_in_right_tails <- which(sdbeta > sd_quartiles[[2]])
@@ -53,67 +57,39 @@ for(model in models){
 
 # load indices from bbsBayes2 ---------------------------------------------
     
-    
+    if(model != "gamye"){
     inds <- generate_indices(fit,
                              regions = "stratum")
-    
-    inds_smooth <- generate_indices(fit,
+    }else{
+    inds <- generate_indices(fit,
                                     alternate_n = "n_smooth",
                                     regions = "stratum")
-    
+    }
     
     left_draws <- sample(draws_in_left_tails,16)
     right_draws <- sample(draws_in_right_tails,16)
     
 
+    p_right = plot_variance_spatial_pattern(indices = inds,
+                                            start_year = 1966,
+                                            end_year = 1976,
+                            selected_draws = draws_in_right_tails,
+                            title = paste(model,model_variant,"right-tail"))
+    p_left = plot_variance_spatial_pattern(indices = inds,
+                                           start_year = 1966,
+                                           end_year = 1976,
+                                           selected_draws = draws_in_left_tails,
+                           title = paste(model,model_variant,"left-tail"))
     
+    print(p_left + p_right + plot_layout(guides = "collect"))
+ 
     
-    plot_function <- function(indices = inds_smooth,
-                              selected_draws = right_draws,
-                              end_year = 2021,
-                              start_year = 1966,
-                              base_map_blank = base_map){
-      
-    max_year_num <- 1+(end_year-indices$meta_data$start_year)
-    min_year_num <- 1+(start_year-indices$meta_data$start_year)
-    nyears = max_year_num - min_year_num
-    
-    trends_plot <- purrr::map_dfr(indices$sample, 
-                                       .f = ~ 100*(((.x[selected_draws,max_year_num] / .x[selected_draws,min_year_num])^(1/nyears))-1),
-                                       .id = "strata_name") %>% 
-      pivot_longer(.,cols = -strata_name,
-                   names_to = ".draw") %>% 
-      mutate(strata_name = gsub("stratum_","",
-                               strata_name),
-             t_plot = cut(value, breaks = c(-Inf, breaks, Inf),
-                          labels = labls))
+  }
   
-    
-    pal <- setNames(
-      c("#a50026", "#d73027", "#f46d43", "#fdae61", "#fee090", "#ffffbf",
-        "#e0f3f8", "#abd9e9", "#74add1", "#4575b4", "#313695"),
-      levels(trends_plot$t_plot))
-    
-    
-    trend_map <- base_map_blank %>% 
-      right_join(.,trends_plot,
-                 by = "strata_name",
-                 multiple = "all")
-    
-  plot_left <- ggplot()+
-    geom_sf(data = trend_map,
-            aes(fill = t_plot))+
-    scale_fill_manual(values = pal)+
-    theme_minimal()+
-    facet_wrap(vars(.draw))
-  
-  return(plot_left)
-  
-    }
-    
-    p_right = plot_function(start_year = 2011)
-    p_left = plot_function(selected_draws = left_draws,
-                           start_year = 2011)
+}
+
+dev.off()
+
     # select stratum indices from the identified SD draws
 
 # calculate the trends from each of the draws
