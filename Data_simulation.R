@@ -12,7 +12,7 @@ library(bbsBayes2) # https://github.com/bbsBayes/bbsBayes2
 # select real BBS data for PAWR -------------------------------------------
 
 
-species = "Pacific Wren"  
+species = "Pine Warbler"  
 species_f <- gsub(species,pattern = " ",replacement = "_") #name without spaces
 
 stratification = "bbs_usgs"

@@ -137,6 +137,9 @@ for(model in models){
   fit <- run_model(pm,
                    refresh = 400,
                    adapt_delta = 0.8,
+                   iter_warmup = 1000,
+                   iter_sampling = 4000,
+                   thin = 2,
                    output_dir = "output",
                    output_basename = paste(species,model,model_variant,sep = "_"))
   
@@ -153,6 +156,21 @@ for(model in models){
   
 }
 
+
+if(model == "gamye"){
+  inds <- generate_indices(fit,
+                           alternate_n = "n_smooth")
+}else{
+inds <- generate_indices(fit)
+}
+
+trends <- generate_trends(inds,
+                          min_year = 2007,
+                          max_year = 2021)
+
+map <- plot_map(trends)
+
+print(map)
 
 
 

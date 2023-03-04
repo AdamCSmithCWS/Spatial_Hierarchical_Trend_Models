@@ -4,10 +4,10 @@
 library(bbsBayes2)
 library(tidyverse)
 library(patchwork)
-source("functions/variance_spatial_pattern.r")
 species <- "Eastern Whip-poor-will"
 
 stratification <- "bbs_usgs"
+source("functions/variance_spatial_pattern.r")
 
 base_map <- load_map(stratification)
 
@@ -71,16 +71,17 @@ for(model in models){
     
 
     p_right = plot_variance_spatial_pattern(indices = inds,
-                                            start_year = 1966,
-                                            end_year = 1976,
+                                            start_year = 2007,
+                                            end_year = 2021,
                             selected_draws = draws_in_right_tails,
                             title = paste(model,model_variant,"right-tail"))
     p_left = plot_variance_spatial_pattern(indices = inds,
-                                           start_year = 1966,
-                                           end_year = 1976,
+                                           start_year = 2007,
+                                           end_year = 2021,
                                            selected_draws = draws_in_left_tails,
                            title = paste(model,model_variant,"left-tail"))
     
+    library(patchwork)
     print(p_left + p_right + plot_layout(guides = "collect"))
  
     

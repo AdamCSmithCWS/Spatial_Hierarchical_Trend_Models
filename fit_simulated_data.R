@@ -6,7 +6,7 @@ library(tidyverse)
 
 species = "simulated"
 
-MAs <- c(0.1,0.5,1,5,10)
+MAs <- c(0.1,1,10)
 
 # Loop Mean Abundance -----------------------------------------------------
 models <- c("gamye","first_diff")
@@ -14,7 +14,7 @@ model_variants <- c("nonhier","hier","spatial")
 model <- models[2]
 model_variant <- model_variants[1]
 
-for(ma in MAs[c(5,1,3,2,4)]){
+for(ma in MAs[c(2,3,1)]){
   
   if(model == "gamye" & model_variant == "nonhier"){next}
   

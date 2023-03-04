@@ -202,6 +202,7 @@ trend_comp <- estimated_trends %>%
               id_cols = c(start_year,end_year,
                          region,n_routes,mean_n_routes,
                          n_years,true_trend,mean_true_abundance)) %>% 
+  filter(mean_true_abundance %in% c(0.1,1,10)) %>% 
   mutate(gamye_dif = abs_dif_trend_gamye_hier - abs_dif_trend_gamye_spatial,
          gamye_dif_slope = abs_dif_trend_slope_gamye_hier - abs_dif_trend_slope_gamye_spatial,
          first_diff_dif_nonhier = abs_dif_trend_first_diff_nonhier - abs_dif_trend_first_diff_hier,
@@ -209,8 +210,9 @@ trend_comp <- estimated_trends %>%
          first_diff_dif = abs_dif_trend_first_diff_hier - abs_dif_trend_first_diff_spatial,
          first_diff_dif_slope = abs_dif_trend_slope_first_diff_hier - abs_dif_trend_slope_first_diff_spatial,
          strat_data = ifelse(n_routes > 11,"High","Low"),
-         peripheral = ifelse(region %in% perif_strata,"Peripheral","Core"))  %>% 
-  filter(mean_true_abundance %in% c(0.1,1,10))
+         peripheral = ifelse(region %in% perif_strata,"Peripheral Strata","Core Strata"),
+         term = ifelse(n_years == 10,"Short","Long"),
+         true_abundance = factor(mean_true_abundance, ordered = TRUE))  
 ### add a north-south selection (edge and core distinction - similar and different from mean)
 
 
@@ -242,60 +244,54 @@ trend_comp <- estimated_trends %>%
 
 
 trend_comp_plot = ggplot(data = trend_comp,
-                         aes(x = n_years,y = gamye_dif))+
-  geom_boxplot(aes(group = n_years))+
-  coord_cartesian(ylim = c(-1,1))+
-  facet_wrap(vars(mean_true_abundance,peripheral),
-             scales = "free_y",
-             nrow = 3,ncol = 2)+
+                         aes(x = term,y = gamye_dif,
+                             colour = true_abundance))+
+  geom_boxplot()+
+  coord_cartesian(ylim = c(-2,2))+
+  facet_wrap(vars(peripheral))+
+  labs(title = "GAMYE")+
+  guides( colour = guide_legend(title = "Simulated mean count"))+
+  ylab("Difference in trend error \n (Hierarchical-Spatial)")+
   geom_hline(yintercept = 0,alpha = 0.5)
+
+
 
 trend_comp_plot2 = ggplot(data = trend_comp,
-                         aes(x = n_years,y = first_diff_dif))+
-  geom_boxplot(aes(group = n_years))+
-  coord_cartesian(ylim = c(-1,1))+
-  facet_wrap(vars(mean_true_abundance,peripheral),
-             scales = "free_y",
-             nrow = 3,ncol = 2)+
+                         aes(x = term,y = first_diff_dif,
+                             colour = true_abundance))+
+  geom_boxplot()+
+  coord_cartesian(ylim = c(-2,2))+
+  facet_wrap(vars(peripheral))+
+  guides( colour = guide_legend(title = "Simulated mean count"))+
+  labs(title = "First-Difference")+
+  ylab("(Hierarchical - Spatial)")+
   geom_hline(yintercept = 0,alpha = 0.5)
+
 
 trend_comp_plot3 = ggplot(data = trend_comp,
-                          aes(x = n_years,y = first_diff_dif_nonhier))+
-  geom_boxplot(aes(group = n_years))+
-  facet_wrap(vars(mean_true_abundance,peripheral),
-             nrow = 3,ncol = 2)+
+                         aes(x = term,y = first_diff_dif_nonhier,
+                             colour = true_abundance))+
+  geom_boxplot()+
+  coord_cartesian(ylim = c(-2,2))+
+  facet_wrap(vars(peripheral))+
+  labs(title = "First-Difference")+
+  guides( colour = guide_legend(title = "Simulated mean count"))+
+  ylab("(Non-Hierarchical - Hierarchical)")+
   geom_hline(yintercept = 0,alpha = 0.5)
 
-print(trend_comp_plot + trend_comp_plot2 + trend_comp_plot3)
 
 
-##
+pdf("Figures/Figure_3.pdf",
+    width = 7.5,
+    height = 3.5)
+print(trend_comp_plot + trend_comp_plot2 + trend_comp_plot3 +
+        plot_layout(guides = "collect") &
+        xlab("Trend Term") &
+        guides( colour = guide_legend(title = "Simulated mean count")) &
+        theme(text = element_text(size = 9),
+              legend.position = "bottom"))
+dev.off()
 
-# 
-# 
-# 
-# trend_comp_sum <- trend_comp %>% 
-#   group_by(strat_data,n_years,mean_true_abundance) %>% 
-#     summarise(.,
-#               mean_gamye = mean(gamye_dif),
-#               se_gamye = sd(gamye_dif)/sqrt(n()),
-#               mean_first_diff_nonhier = mean(first_diff_dif_nonhier),
-#               se_first_diff_nonhier = sd(first_diff_dif_nonhier)/sqrt(n()),
-#               mean_first_diff = mean(first_diff_dif),
-#               se_first_diff = sd(first_diff_dif)/sqrt(n()))
-# 
-# 
-# trend_error_sum <- estimated_trends %>% 
-#   left_join(.,true_trends,
-#             by = c("start_year","end_year",
-#                    "region" = "strata_name")) %>% 
-#   mutate(n_years = end_year-start_year,
-#          abs_dif_trend = abs(trend - true_trend),
-#          abs_dif_trend_slope = abs(trend - true_trend_slope)) %>% 
-#   group_by(model,model_variant,n_years) %>% 
-#   summarise(.,
-#             mean_abs_error = mean(abs_dif_trend),
-#             se_mean_error = sd(abs_dif_trend)/sqrt(n()))
 
 # plot the trajectories ---------------------------------------------------
 

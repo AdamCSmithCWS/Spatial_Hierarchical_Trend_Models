@@ -82,6 +82,47 @@ dev.off()
 
 
 
+
+# WOTH fine grain analysis ------------------------------------------------
+
+species <- "Wood Thrush"
+model <- "gam"
+model_variant <- "Spatial"
+
+fit <- readRDS(paste0("output/",paste(species,model,model_variant,sep = "_"),".rds"))
+
+inds <- generate_indices(fit)
+
+trends <- generate_trends(inds,
+                          min_year = 2007)
+
+map <- plot_map(trends,
+                title = FALSE)
+map_ext <- load_map("latlong") %>% 
+  filter(strata_name %in% unique(inds$raw_data$strata_name)) %>% 
+  sf::st_buffer(.,100000) %>% 
+  sf::st_bbox()
+
+map <- map + 
+  coord_sf(xlim = map_ext[c("xmin","xmax")]+c(0,200000),
+           ylim = map_ext[c("ymin","ymax")]+c(-200000,0))
+
+pdf("figures/Figure_6.pdf",
+    width = 4.5,
+    height = 4)
+map
+dev.off()
+
+
+
+
+
+
+
+
+
+
+
 # 2 simulated data trajectory geofacet ---------------------------------------------------
 
 
