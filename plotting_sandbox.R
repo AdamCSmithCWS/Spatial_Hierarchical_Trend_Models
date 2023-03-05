@@ -6,6 +6,10 @@
 #setwd("C:/GitHub/Spatial_hierarchical_trend_models")
 setwd( "C:/Users/SmithAC/Documents/GitHub/Spatial_Hierarchical_Trend_Models")
 
+
+# load setup --------------------------------------------------------------
+
+
 library(bbsBayes2)
 library(tidyverse)
 library(patchwork)
@@ -14,13 +18,15 @@ HDL <- function(x,int,upper = TRUE){
   b <- HDInterval::hdi(x,int)
   return(ifelse(upper,b[["upper"]],b[["lower"]]))
 }
-
+source("functions/posterior_summary_functions.R")
 source("functions/map_trends.R")
 #species <- "Yellow-headed Blackbird"
 #species <- "Pacific Wren"
 species <- "Eastern Whip-poor-will"
 
 stratification <- "bbs_usgs"
+
+
 models = c("gamye","first_diff")
 
 model_variants <- c("nonhier","hier","spatial")
@@ -229,8 +235,8 @@ for(model in models){
 
 
 
-  source("functions/posterior_summary_functions.R")
   
+
 
 # CBC and Shorebirds ------------------------------------------------------
 
@@ -442,6 +448,10 @@ for(model in models){
               .groups = "keep") %>% 
     mutate(index_type = "full")
   
+  
+
+
+  
   if(model == "gamye"){
     ind_samples_smooth <- readRDS(paste0("output/",data_set,"_smooth_indices_",model,"_",model_variant,".rds"))
   
@@ -455,7 +465,7 @@ for(model in models){
     
     inds_strat <- bind_rows(inds_strat,inds_strat_smooth)
     
-    }
+  }
   
   if(data_set == "CBC"){
   inds_comp <- ind_samples %>%
