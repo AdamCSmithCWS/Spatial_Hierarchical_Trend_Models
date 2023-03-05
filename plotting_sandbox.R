@@ -15,6 +15,7 @@ HDL <- function(x,int,upper = TRUE){
   return(ifelse(upper,b[["upper"]],b[["lower"]]))
 }
 
+source("functions/map_trends.R")
 #species <- "Yellow-headed Blackbird"
 #species <- "Pacific Wren"
 species <- "Eastern Whip-poor-will"
@@ -78,6 +79,7 @@ strat_grid <- geofacet::grid_auto(realized_strata_map,
                                   seed = 2019)
 
 
+base_map <- realized_strata_map <- load_map(stratify_by = stratification)
 
 for(model in models){
   
@@ -162,15 +164,11 @@ for(model in models){
 
 
     
-
-        map_hier <- plot_map(tt_hier,
-                    title = FALSE,
-                    slope = TRUE)+
-          labs(title = paste("Hierarchical",model))
-        map_spatial <- plot_map(tt_spatial,
-                        title = FALSE,
-                        slope = TRUE)+
-          labs(title = paste("Spatial",model))
+  map_hier <- map_trends(tt_hier,
+                         title = paste("Hierarchical",model))
+    
+  map_spatial <- map_trends(tt_spatial,
+                            title = paste("Spatial",model))
 
         traj_hier <- plot_indices(inds_hier,
                                   title = FALSE,
@@ -189,10 +187,8 @@ for(model in models){
                                         slope = TRUE)
           
           
-          map_nonhier <- plot_map(tt_nonhier,
-                                  title = FALSE,
-                                  slope = TRUE)+
-            labs(title = paste("Non_Hierarchical",model))
+          map_nonhier <- map_trends(tt_nonhier,
+                                 title = paste("Non-Hierarchical",model))
           
           traj_nonhier <- plot_indices(inds_nonhier,
                                     title = FALSE,
