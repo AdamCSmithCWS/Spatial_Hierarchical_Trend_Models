@@ -145,8 +145,8 @@ transformed parameters {
 model {
   sdnoise ~ student_t(3,0,1); //prior on scale of extra Poisson log-normal variance
   sdste ~ student_t(3,0,1); //prior on sd of site effects
-  sdbeta ~ student_t(3,0,0.1); // prior on sd of differences among strata
-  sdBETA ~ student_t(3,0,0.1); // prior on sd of mean hyperparameter differences
+  sdbeta ~ student_t(3,0,0.2); // prior on sd of differences among strata
+  sdBETA ~ student_t(3,0,0.2); // prior on sd of mean hyperparameter differences
   sdstrata ~ student_t(3,0,1); //prior on sd of intercept variation
 
   

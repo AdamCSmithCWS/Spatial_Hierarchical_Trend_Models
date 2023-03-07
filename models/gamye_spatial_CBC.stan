@@ -24,11 +24,11 @@ data {
   int<lower=1> ncounts;
   int<lower=1> nyears;
 
-  int<lower=0> count[ncounts];              // count observations
-  int<lower=1> strat[ncounts];               // strata indicators
-  int<lower=1> year[ncounts]; // year index
-  int<lower=1> site[ncounts]; // site index
-  
+  array[ncounts] int<lower=0> count;              // count observations
+  array[ncounts] int<lower=1> strat;               // strata indicators
+  array[ncounts] int<lower=1> year; // year index
+  array[ncounts] int<lower=1> site; // site index
+ 
  array[nstrata] int<lower=1> nsites_strata; // number of sites in each stratum
  int<lower=0> maxnsites_strata; //largest value of nsites_strata
 
@@ -128,7 +128,7 @@ for(s in 1:nstrata){
 model {
   sdnoise ~ student_t(3,0,1); //prior on scale of extra Poisson log-normal variance
   sdste ~ student_t(3,0,1); //prior on sd of site effects
-  sdyear~ student_t(3,0,1); // prior on sd of yeareffects - stratum specific, and boundary-avoiding with a prior mode at 0.5 (1/2) - recommended by https://doi.org/10.1007/s11336-013-9328-2 
+  sdyear ~ normal(0,0.3); // informative prior on scale of yeareffects - 99% of prior
   sdBETA ~ student_t(3,0,1); // prior on sd of GAM parameters
   sdbeta ~ student_t(3,0,1); // prior on sd of GAM parameters
   sdstrata ~ student_t(3,0,1); //prior on sd of intercept variation
@@ -178,8 +178,8 @@ for(k in 1:nknots_year){
 
  generated quantities {
 
-   real<lower=0> n[nstrata,nyears];
-   real<lower=0> nsmooth[nstrata,nyears];
+   array[nstrata,nyears] real<lower=0> n;
+   array[nstrata,nyears] real<lower=0> nsmooth;
   // vector[ncounts] log_lik; // alternative value to track the observervation level log-likelihood
   // potentially useful for estimating loo-diagnostics, such as looic
   
@@ -192,8 +192,8 @@ for(y in 1:nyears){
 
       for(s in 1:nstrata){
 
-  real n_t[nsites_strata[s]];
-  real nsmooth_t[nsites_strata[s]];
+  array[nsites_strata[s]] real n_t;
+  array[nsites_strata[s]] real nsmooth_t;
   real retrans_yr = 0.5*(sdyear[s]^2);
   real strata = (sdstrata*strata_raw[s]) + STRATA;
   

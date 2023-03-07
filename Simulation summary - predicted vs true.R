@@ -101,7 +101,7 @@ model_variants <- c("nonhier","hier","spatial")
 
 # Explore predicted vs true trajectories and trends for simulations -----------------------
 estimated_trends <- NULL
-for(ma in MAs){
+for(ma in MAs[2]){
   for(model in models){
   
 for(model_variant in model_variants){
@@ -307,7 +307,7 @@ strat_grid <- geofacet::grid_auto(realized_strata_map,
                                   names = "strata_name",
                                   seed = 2019)
    
-for(ma in MAs){
+for(ma in MAs[2]){
   ma_f <- gsub(as.character(ma),pattern = ".",replacement = "-",
                fixed = TRUE)
   log_ma <- round(log(ma),6)
@@ -408,13 +408,6 @@ for(model_variant in model_variants[2:3]){
   
 }
 
-ind_smooth <- ind_smooth %>% 
-  filter(region %in% c("US-AK-5","CA-AB-10","US-CA-15")) %>% 
-  mutate(strata_name = factor(region,levels = c("US-AK-5","CA-AB-10","US-CA-15"),
-                              ordered = TRUE),
-         model_plot = ifelse(model == "first_diff","First Difference","GAMYE")) %>% 
-  left_join(.,model_variant_names,
-            by = "model_variant")
 
 model_variant_names = data.frame("model_variant" = model_variants,
                          variant_plot = factor(c("Non-hierarchical","Hierarchical",
@@ -422,10 +415,20 @@ model_variant_names = data.frame("model_variant" = model_variants,
                                                levels = c("Non-hierarchical","Hierarchical",
                                                           "Spatial"),
                                                ordered = TRUE))
+
+# ind_smooth <- ind_smooth %>% 
+#   filter(region %in% c("US-AK-5","CA-AB-10","US-CA-15")) %>% 
+#   mutate(strata_name = factor(region,levels = c("US-AK-5","CA-AB-10","US-CA-15"),
+#                               ordered = TRUE),
+#          model_plot = ifelse(model == "first_diff","First Difference","GAMYE")) %>% 
+#   left_join(.,model_variant_names,
+#             by = "model_variant")
+
+st_sel <- c("CA-ON-8","CA-MB-12","US-SC-27","US-VA-28","US-LA-26","US-LA-27")
 inds_plot <- inds_out %>% 
-  filter(strata_name %in% c("US-AK-5","CA-AB-10","US-CA-15"),
+  filter(strata_name %in% st_sel,
          mean_true_abundance == 1) %>% 
-  mutate(strata_name = factor(strata_name,levels = c("US-AK-5","CA-AB-10","US-CA-15"),
+  mutate(strata_name = factor(strata_name,levels = st_sel,
                               ordered = TRUE),
          model_plot = ifelse(model == "first_diff","First Difference","GAMYE")) %>% 
   left_join(.,model_variant_names,
@@ -448,8 +451,8 @@ inds_plot <- inds_out %>%
     #          linewidth = 0.8,
     #          linetype = 2)+
     geom_point(aes(x = year,y = obs_mean),alpha = 0.1,inherit.aes = FALSE)+
-    geom_ribbon(aes(ymin = index_q_0.25,
-                    ymax = index_q_0.75,
+    geom_ribbon(aes(ymin = index_q_0.05,
+                    ymax = index_q_0.95,
                     fill = variant_plot),
                 alpha = 0.2)+
     scale_colour_viridis_d(end = 0.8,begin = 0.2,
@@ -467,13 +470,15 @@ inds_plot <- inds_out %>%
     theme(strip.text = element_text(),
           strip.background = element_blank(),
           panel.spacing = unit(1.5,"mm"),
-          axis.text.x = element_text(size = 5))
+          axis.text.x = element_text(size = 5),
+          legend.position = "bottom",
+          legend.text = element_text(size = 7))
 
   print(inds_demo)    
   
   pdf("figures/Figure_2.pdf",
-      width = 7,
-      height = 5)
+      width = 4,
+      height = 7)
   print(inds_demo)
   dev.off()
   

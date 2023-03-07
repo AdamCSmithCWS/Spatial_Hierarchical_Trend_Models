@@ -10,8 +10,9 @@ library(ggrepel)
 source("functions/neighbours_define.R")
  source("functions/indices_cmdstan.R")
 source("functions/posterior_summary_functions.R")
-source("Functions/palettes.R")
-species = "Yellow-headed Blackbird"  
+source("functions/map_trends.R")
+# source("Functions/palettes.R")
+species = "Pine Warbler"  
 species_f <- gsub(species,pattern = " ",replacement = "_")
 
 
@@ -19,8 +20,6 @@ species_f <- gsub(species,pattern = " ",replacement = "_")
 # 1 map of example strata connections ---------------------------------
 
 
-species = "Pacific Wren"  
-species_f <- gsub(species,pattern = " ",replacement = "_") #name without spaces
 
 stratification = "bbs_usgs"
 
@@ -123,281 +122,128 @@ dev.off()
 
 
 
-# 2 simulated data trajectory geofacet ---------------------------------------------------
+model_variants <- c("non-hier","hier","spatial")
+  # 4 real data overall trajectories and maps for EAWP --------------------------
+model_variant_names = data.frame("model_variant" = model_variants,
+                                 variant_plot = factor(c("Non-hierarchical","Hierarchical",
+                                                         "Spatial"),
+                                                       levels = c("Non-hierarchical","Hierarchical",
+                                                                  "Spatial"),
+                                                       ordered = TRUE))
 
+  species <- "Eastern Whip-poor-will"
 
-output_dir <- "output/"
-#tp = "non_linear"
-load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
-load(paste0("Data/",species_f,"BBS","_data.RData"))
-
-
-  strat_grid <- geofacet::grid_auto(realized_strata_map,
-                                    codes = "Stratum_Factored",
-                                    seed = 2)
-
+stratification = "bbs_usgs"
+base_map <- load_map(stratification)
+model <- "gamye"
   
-  fig4_geo = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
-                                         x = Year))+
-    geom_ribbon(aes(ymin = lci,ymax = uci,
-                    fill = version),alpha = 0.3)+
-    geom_point(data = nsmooth_comp2,aes(x = Year,y = mean_count),
-               alpha = 0.1,
-               size = 0.2,
-               inherit.aes = FALSE)+
-    geom_line(aes(colour = version))+
-    scale_colour_viridis_d(aesthetics = c("colour","fill"),
-                           begin = 0,
-                           end = 0.5,
+
+  inds_hier <- readRDS(paste0("output/",paste("indices",species,model,"hier",sep = "_")))
+  inds_spatial <- readRDS(paste0("output/",paste("indices",species,model,"spatial",sep = "_")))
+  inds_hier_smooth <- readRDS(paste0("output/",paste("indices_smooth",species,model,"hier",sep = "_")))
+  inds_spatial_smooth <- readRDS(paste0("output/",paste("indices_smooth",species,model,"spatial",sep = "_")))
+ 
+  
+  inds_hier_plot <- inds_hier$indices %>% 
+    filter(region == "continent") %>% 
+    mutate(model_variant = "hier")
+  inds_spatial_plot <- inds_spatial$indices %>% 
+    filter(region == "continent") %>% 
+    mutate(model_variant = "spatial")
+  
+  inds_plot <- bind_rows(inds_hier_plot,
+                         inds_spatial_plot) %>% 
+    left_join(.,model_variant_names,
+              by = "model_variant")
+  
+  trajs <- ggplot(data = inds_plot,
+                  aes(x = year, y = index))+
+    geom_ribbon(aes(ymin = index_q_0.05, ymax = index_q_0.95,
+                    fill = variant_plot),
+                alpha = 0.3)+
+    geom_line(aes(colour = variant_plot))+
+    scale_colour_viridis_d(end = 0.8,begin = 0.2,
+                           aesthetics = c("colour","fill"),
                            direction = -1)+
+    guides( colour = guide_legend(title = "Model Variant"),
+            fill = guide_legend(title = "Model Variant"))+
     scale_y_continuous(limits = c(0,NA))+
-    geofacet::facet_geo(~Stratum_Factored,grid = strat_grid,
-                        scales = "free")+
+    ylab("Estimated annual relative abundance")+
     xlab("")+
-    ylab("Mean annual smooth trajectory")+
-    theme_bw() +
-    theme(legend.position = "none",
-          strip.background = element_blank(),
-          strip.text.x = element_blank(),
-          axis.text.x = element_text(size = 5))
-  
-  pdf(file = paste0("Figures/Figure_3.pdf"),
-      width = 7,
-      height = 10)
-  print(fig4_geo)
-  dev.off()
-
-
-# 5 Trend comparisons ---------------------------------------------------
-    MAs <- round(log(c(0.1,0.5,1,50)),2)# true mean abundances for different simulations
-    
-output_dir <- "output/"
-tp = "non_linear"
-load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
-
-strat_df <- as.data.frame(strata_mask) %>% 
-  select(Stratum_Factored,masked)
-sw_trends <- NULL
-strat_trends <- NULL
-
-for(sns in c("","nonSpatial_alt_")){#,"nonSpatial_"))
-  for(ma in MAs){
-    
-    out_base_sim <- paste0("sim_",sns,tp,"_",ma,"_BBS")
-    
-    lbl <- "Spatial"
-    if(sns == "nonSpatial_alt_"){
-      lbl <- "NonSpatial"
-    }
-    lblm <- paste0(signif(exp(ma),1))
-      
+    theme_classic()+
+    theme(legend.position = "bottom",
+          axis.title = element_text(size = 8))
    
+  
+   
+
+
+  first_years <- c(1970,1995,2011)
+  map_hier <- vector("list",length(first_years))
+  map_spatial <- vector("list",length(first_years))
+  tt_out <- NULL
+  for(j in 1:length(first_years)){
     
-    load(paste0("data/",out_base_sim,"_accuracy_comp.RData"))
-    sw_t <- all_trends %>% 
-      filter(Region_type == "Survey_Wide_Mean",
-             #last_year-first_year == 2019,
-             last_year-first_year == 5) %>% 
-      mutate(version = lbl,
-             true_mean = lblm)
-    sw_trends <- bind_rows(sw_trends,sw_t)
+    ys <- first_years[j]
+    ye <- ys+10
     
-    strat_t <- all_trends %>% 
-      filter(Region_type == "Stratum_Factored",
-             #last_year-first_year == 2019,
-             last_year-first_year == 5) %>% 
-      mutate(version = lbl,
-             true_mean = lblm)
-    strat_trends <- bind_rows(strat_trends,strat_t)
+    tt_hier <- generate_trends(inds_hier_smooth,
+                               min_year = ys,
+                               max_year = ye) 
+    
+    tt_hier <- tt_hier[["trends"]] %>% 
+      filter(region_type == "stratum") %>% 
+      mutate(model_variant = "hier")
+    
+    tt_spatial <- generate_trends(inds_spatial_smooth,
+                                  min_year = ys,
+                                  max_year = ye)
+    tt_spatial <- tt_spatial[["trends"]] %>% 
+      filter(region_type == "stratum") %>% 
+      mutate(model_variant = "spatial")
+    
+   tt_out <- bind_rows(tt_out,
+                       tt_hier)
+   tt_out <- bind_rows(tt_out,
+                       tt_spatial)
+   
+
   }
-}
-
-
-
-strat_trends_nm <- strat_trends %>% 
-  left_join(.,strat_df,by = "Stratum_Factored") %>%
-  #filter(first_year %in% c(1970:2009)) %>% 
-  mutate(t_dif = true_trend - trend,
-         t_abs_dif = abs(t_dif),
-         t_se = ((uci-lci)/(1.96*2)),
-         t_prec = 1/t_se^2)%>% 
-  mutate(trend_time = factor(paste0(first_year,"-",last_year)))
-
-
-
-mean_difs <- strat_trends_nm %>% 
-  group_by(true_mean,
-           version,
-           trend_time) %>% 
-  summarise(mean_abs_dif = mean(t_abs_dif,na.rm = T),
-            lci = quantile(t_abs_dif,0.05,na.rm = T),
-            uci = quantile(t_abs_dif,0.95,na.rm = T))
-
-sw_trends_ab <- sw_trends %>% 
-  mutate(t_dif = true_trend - trend,
-         t_abs_dif = abs(t_dif),
-         t_se = ((uci-lci)/(1.96*2)),
-         t_prec = 1/t_se^2)%>% 
-  mutate(trend_time = factor(paste0(first_year,"-",last_year)))
-
-mean_difs_sw <- sw_trends_ab %>% 
-  group_by(true_mean,
-           version,
-           trend_time) %>% 
-  summarise(mean_abs_dif = mean(t_abs_dif,na.rm = T),
-            lci = quantile(t_abs_dif,0.05,na.rm = T),
-            uci = quantile(t_abs_dif,0.95,na.rm = T))
-
-trends4means_plot <- ggplot(data = mean_difs,
-                              aes(x = trend_time,
-                                  y = mean_abs_dif,
-                                  colour = version),
-                              position = position_dodge(width = 0.5))+
-  geom_errorbar(aes(colour = version,ymin = lci,
-                    ymax = uci),
-                alpha = 0.3,
-                width = 0,
-                position = position_dodge(width = 0.5))+
-  geom_point(position = position_dodge(width = 0.5))+
-  scale_y_continuous(limits = c(0,NA))+
-  ylab("Absolute difference in trend (Estimated - True)")+
-  xlab("Timespan of Trend")+
-  theme_bw()+
-  facet_wrap(vars(true_mean),
-             nrow = 2,
-             scales = "fixed")
-print(trends4means_plot)
-
-m1 = brm(t_abs_dif  ~ version*true_mean+trend_time + (1|Stratum_Factored),
-        data = strat_trends_nm)
-summary(m1)
-
-m2 = brm(t_abs_dif  ~ version*true_mean+trend_time,
-         data = sw_trends_ab)
-summary(m2)
-
-
-# trends4a_plot <- ggplot(data = strat_trends_nm,
-#                        aes(x = first_year,y = t_abs_dif,fill = version))+
-#   geom_boxplot(aes(fill = version),
-#              position = position_dodge(width = 1))+
-#   scale_y_continuous(limits = c(0,NA))+
-#   ylab("Absolute difference in trend (Estimated - True)")+
-#   xlab("Timespan of Trend")+
-#   theme_bw()+
-#   facet_wrap(vars(true_mean),
-#              nrow = 2,
-#              scales = "free")
-# 
-#   print(trends4a_plot)
-# 
-# 
-#   
-  # strat_trends_m <- strat_trends %>%
-  #   filter(first_year %in% c(1970:2009),
-  #          masked == TRUE,
-  #          version %in% c("NonSpatial Masked","Spatial Masked")) %>%
-  #   mutate(first_year = factor(paste0(first_year,"-2019")))
-
-#   m2 = lm(t_abs_dif~version*true_mean+first_year,
-#           data = strat_trends_m)
-#   summary(m2)
-#   
-#   
-#   trends4b_plot <- ggplot(data = strat_trends_m,
-#                           aes(x = first_year,y = t_abs_dif,fill = version))+
-#     geom_boxplot(aes(fill = version),
-#                  position = position_dodge(width = 1),
-#                  coef = 3)+
-#     scale_y_continuous(limits = c(0,NA))+
-#     ylab("Absolute difference in trend (Estimated - True)")+
-#     xlab("Timespan of Trend")+
-#     theme_bw()+
-#     facet_wrap(vars(true_mean),
-#                nrow = 2,
-#                scales = "free")
-#   
-#   print(trends4b_plot)
- 
-  mean_difs_m <- strat_trends_m %>% 
-    group_by(true_mean,
-             version,
-             first_year) %>% 
-    summarise(mean_abs_dif = mean(t_abs_dif,na.rm = T),
-              lci = quantile(t_abs_dif,0.05,na.rm = T),
-              uci = quantile(t_abs_dif,0.95,na.rm = T))
   
-  trends4means_plot_m <- ggplot(data = mean_difs_m,
-                          aes(x = first_year,
-                              y = mean_abs_dif,
-                              colour = version),
-                          position = position_dodge(width = 0.5))+
-    geom_errorbar(aes(colour = version,ymin = lci,
-                      ymax = uci),
-                  alpha = 0.3,
-                  width = 0,
-                  position = position_dodge(width = 0.5))+
-    geom_point(position = position_dodge(width = 0.5))+
-    scale_y_continuous(limits = c(0,NA))+
-    ylab("Absolute difference in trend (Estimated - True)")+
-    xlab("Timespan of Trend")+
-    theme_bw()+
-    facet_wrap(vars(true_mean),
-               nrow = 2,
-               scales = "free")
+  tt_out <- tt_out %>% 
+    mutate(span = paste(start_year,end_year,sep = "-")) %>% 
+    left_join(.,model_variant_names,
+              by = "model_variant")
+  tmap <- map_trends(tt_out,
+                     facetgrid = TRUE,
+                     base_map_blank = base_map,
+                     facet_1 = "span",
+                     facet_2 = "variant_plot",
+                     legend_title = "Trend",
+                     add_base = FALSE)+
+    theme(legend.position = "bottom",
+          legend.key.size = unit(3,"mm"),
+          legend.text = element_text(size = 7))
+    
   
-  pdf(file = paste0("Figures/Figure_5.pdf"),
-      width = 7,
-      height = 4)
-  print(trends4means_plot_m)
+  
+  
+  
+  full <- trajs / tmap +
+    plot_layout(design = c("
+                           11
+                           22
+                           22
+                           22
+                           "))
+    
+  
+  pdf("Figures/Figure_4.pdf",
+      width = 5,
+      height = 10)
+  print(full)
   dev.off()
   
-  
- 
-  # 6 real data overall trajectories for 3 species --------------------------
-
-  
-  load("output/real_data_summaries.RData")
-  
-  
-  fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
-                                  "Cinclus_mexicanus",
-                                  "Red_Knot"),
-                    species = c("Yellow-headed Blackbird",
-                                "Cinclus_mexicanus",
-                                "Red Knot"),
-                    species_l = c("BBS - Yellow-headed Blackbird",
-                                  "CBC - American Dipper",
-                                  "Shorebird - Red Knot"))
-  
-  Indices_all_out <- Indices_all_out %>% 
-    left_join(.,fls,by = "species")
-Iplot <- ggplot(data = Indices_all_out,
-                aes(x = true_year,y = median))+
-  geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),
-              alpha = 0.2)+
-  geom_line(aes(colour = version))+
-  scale_y_continuous(limits = c(0,NA))+
-  scale_colour_viridis_d(aesthetics = c("colour","fill"),
-                         begin = 0,
-                         end = 0.6,
-                         direction = 1)+
-  ylab("Survey-wide mean annual predictions")+
-  xlab("")+
-  theme_bw()+
-  theme(legend.position = "none")+
-  facet_wrap(vars(species_l),
-             nrow = 3,
-             ncol = 1,
-             scales = "free_y")
-
-pdf(file = "Figures/Figure_6.pdf",
-    width = 3.5,
-    height = 5)
-print(Iplot)
-dev.off()
-
-
 
 # 7 long-term and short-term (3-gen) trend maps ---------------------------
 # six panel, paired maps

@@ -14,7 +14,7 @@ model_variants <- c("nonhier","hier","spatial")
 model <- models[2]
 model_variant <- model_variants[1]
 
-for(ma in MAs[c(2,3,1)]){
+for(ma in MAs[c(3,1)]){
   
   if(model == "gamye" & model_variant == "nonhier"){next}
   
