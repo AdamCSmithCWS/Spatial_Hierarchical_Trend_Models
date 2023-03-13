@@ -101,7 +101,7 @@ model_variants <- c("nonhier","hier","spatial")
 
 # Explore predicted vs true trajectories and trends for simulations -----------------------
 estimated_trends <- NULL
-for(ma in MAs[2]){
+for(ma in MAs){
   for(model in models){
   
 for(model_variant in model_variants){
@@ -307,7 +307,7 @@ strat_grid <- geofacet::grid_auto(realized_strata_map,
                                   names = "strata_name",
                                   seed = 2019)
    
-for(ma in MAs[2]){
+for(ma in MAs){
   ma_f <- gsub(as.character(ma),pattern = ".",replacement = "-",
                fixed = TRUE)
   log_ma <- round(log(ma),6)

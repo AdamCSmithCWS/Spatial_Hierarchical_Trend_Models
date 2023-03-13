@@ -4,19 +4,40 @@ map_trends <- function(trends = trends,
                           base_map_blank = base_map,
                           title = "",
                        legend_title = NULL,
-                       zoom_out = 0.05){
+                       zoom_out = 0.05,
+                       add_base = TRUE,
+                       region_name = "region",
+                       facetgrid = FALSE,
+                       facet_1 = NULL,
+                       facet_2 = NULL,
+                       ...){
   
   zoom_out <- zoom_out+1
   
-  if(plot_trend){
+  if(!is_tibble(trends)){
+    trends <- trends[["trends"]] %>% 
+      filter(region_type == "stratum") 
+  }
+
+  if(facetgrid){
+    trends <- trends %>% 
+      rename_with(.,~gsub(facet_1,
+                          "fac1",
+                          .x)) %>% 
+      rename_with(.,~gsub(facet_2,
+                          "fac2",
+                          .x))
+  }
+ 
+  
+if(plot_trend){
   breaks <- c(-7, -4, -2, -1, -0.5, 0.5, 1, 2, 4, 7)
   labls <- c(paste0("< ", breaks[1]),
              paste0(breaks[-c(length(breaks))],":", breaks[-c(1)]),
              paste0("> ",breaks[length(breaks)]))
   labls <- paste0(labls, " %")
   
-  trends_plot <- trends$trends %>% 
-    filter(region_type == "stratum") %>% 
+  trends_plot <- trends %>% 
     rename_with(.,~gsub(variable,"value",.x)) %>% 
     mutate(t_plot = cut(value, breaks = c(-Inf, breaks, Inf),
                         labels = labls,
@@ -28,7 +49,8 @@ map_trends <- function(trends = trends,
     levels(trends_plot$t_plot))
   
   start_year <- min(trends_plot$start_year)
-  end_year <- min(trends_plot$end_year)
+  end_year <- max(trends_plot$end_year)
+  
   
   if(!is.null(legend_title)){
     l_title <- paste(legend_title,"\n",start_year,"-",end_year)
@@ -36,11 +58,13 @@ map_trends <- function(trends = trends,
   }else{
   l_title <- paste("Trend \n",start_year,"-",end_year)
   }
+  if(length(unique(trends_plot$start_year)) > 1){
+    l_title <- "Trend"
+  }
   }else{
     
 
-    trends_plot <- trends$trends %>% 
-      filter(region_type == "stratum") %>% 
+    trends_plot <- trends %>% 
       rename_with(.,~gsub(variable,"t_plot",.x)) 
     
     pal <- scale_colour_viridis_c()
@@ -53,7 +77,14 @@ map_trends <- function(trends = trends,
     }else{
     l_title <- paste(variable,"\n",start_year,"-",end_year)
     }
-    
+    if(length(unique(trends_plot$start_year)) > 1){
+      if(!is.null(legend_title)){
+        l_title <- paste(legend_title)
+        
+      }else{
+        l_title <- paste(variable)
+      }
+    }
   }
   
   
@@ -63,19 +94,15 @@ map_trends <- function(trends = trends,
   
   trend_map <- base_map_blank %>% 
     right_join(.,trends_plot,
-               by = c("strata_name" = "region"),
+               by = c("strata_name" = region_name),
                multiple = "all")
   
   map_ext <- sf::st_bbox(trend_map)
   
   
   plot_out <- ggplot()+
-    geom_sf(data = base_map_blank,
-            alpha = 0)+
     geom_sf(data = trend_map,
             aes(fill = t_plot))+
-    coord_sf(xlim = map_ext[c("xmin","xmax")]*zoom_out,
-             ylim = map_ext[c("ymin","ymax")]*zoom_out)+
     labs(title = title)+
     theme_minimal()
   
@@ -87,6 +114,24 @@ map_trends <- function(trends = trends,
     plot_out <- plot_out +
       scale_fill_viridis_c(guide = guide_legend(title = l_title))
   }
+  if(add_base){
+    plot_out <-  plot_out+
+      geom_sf(data = base_map_blank,
+              alpha = 0)
+  }
+  
+  if(facetgrid){
+  plot_out<- plot_out +
+    facet_grid(rows = vars(fac1),
+               cols = vars(fac2))
+  }
+  
+  plot_out<- plot_out +
+    coord_sf(xlim = map_ext[c("xmin","xmax")]*zoom_out,
+             ylim = map_ext[c("ymin","ymax")]*zoom_out)+
+    theme(plot.margin = unit(rep(1,4),"mm"),
+          axis.text = element_text(size = 6),
+          title = element_text(size = 8))
   
   return(plot_out)
   

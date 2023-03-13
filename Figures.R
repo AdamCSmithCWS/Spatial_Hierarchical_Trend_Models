@@ -82,10 +82,10 @@ dev.off()
 
 
 
-# WOTH fine grain analysis ------------------------------------------------
+# 6 WOTH fine grain analysis ------------------------------------------------
 
 species <- "Wood Thrush"
-model <- "gam"
+model <- "first_diff"
 model_variant <- "Spatial"
 
 fit <- readRDS(paste0("output/",paste(species,model,model_variant,sep = "_"),".rds"))
@@ -122,8 +122,10 @@ dev.off()
 
 
 
+  # 4 real data overall trajectories and maps for BBS --------------------------
+
 model_variants <- c("non-hier","hier","spatial")
-  # 4 real data overall trajectories and maps for EAWP --------------------------
+
 model_variant_names = data.frame("model_variant" = model_variants,
                                  variant_plot = factor(c("Non-hierarchical","Hierarchical",
                                                          "Spatial"),
@@ -245,134 +247,195 @@ model <- "gamye"
   dev.off()
   
 
-# 7 long-term and short-term (3-gen) trend maps ---------------------------
-# six panel, paired maps
+  
+  
+  
+  
 
-load("output/real_data_summaries.RData")
+# 5 trajectories and trend maps for CBC and Shorebird ---------------------
+  
+  model_variants <- c("non-hier","hier","spatial")
+  
+  model_variant_names = data.frame("model_variant" = model_variants,
+                                   variant_plot = factor(c("Non-hierarchical","Hierarchical",
+                                                           "Spatial"),
+                                                         levels = c("Non-hierarchical","Hierarchical",
+                                                                    "Spatial"),
+                                                         ordered = TRUE))
+  
+  inds_out <- readRDS("output/All_CBC_and_shorebird_indices.rds")  
+  inds_cont1 <- inds_out %>% 
+    filter(strata_name == "continent",
+           index_type != "smooth",
+           data_set == "CBC",
+           model == "first_diff") %>% 
+    left_join(.,model_variant_names,
+              by = "model_variant")
+  
+  inds_cont2 <- inds_out %>% 
+    filter(strata_name == "continent",
+           index_type != "smooth",
+           data_set == "Shorebird",
+           model == "gamye") %>% 
+    left_join(.,model_variant_names,
+              by = "model_variant")
+  
+  
+  
+  traj1 <- ggplot(data = inds_cont1,
+                  aes(x = year, y = index))+
+    geom_ribbon(aes(ymin = index_q_0.05, ymax = index_q_0.95,
+                    fill = variant_plot),
+                alpha = 0.3)+
+    geom_line(aes(colour = variant_plot))+
+    scale_colour_viridis_d(end = 0.8,begin = 0.2,
+                           aesthetics = c("colour","fill"),
+                           direction = -1)+
+    guides( colour = guide_legend(title = "Model Variant"),
+            fill = guide_legend(title = "Model Variant"))+
+    scale_y_continuous(limits = c(0,NA))+
+    ylab("Estimated annual \n relative abundance")+
+    xlab("")+
+    theme_classic()+
+    theme(legend.position = "bottom",
+          axis.title = element_text(size = 8))
+  
+  traj2 <- ggplot(data = inds_cont2,
+                  aes(x = year, y = index))+
+    geom_ribbon(aes(ymin = index_q_0.05, ymax = index_q_0.95,
+                    fill = variant_plot),
+                alpha = 0.3)+
+    geom_line(aes(colour = variant_plot))+
+    scale_colour_viridis_d(end = 0.8,begin = 0.2,
+                           aesthetics = c("colour","fill"),
+                           direction = -1)+
+    guides( colour = guide_legend(title = "Model Variant"),
+            fill = guide_legend(title = "Model Variant"))+
+    scale_y_continuous(limits = c(0,NA))+
+    ylab("Estimated annual \n relative abundance")+
+    xlab("")+
+    theme_classic()+
+    theme(legend.position = "none",
+          axis.title = element_text(size = 8))
+  
+  
+  
+  trends_out <- readRDS("output/All_CBC_and_shorebird_trends.rds")
 
+  
+  ### CBC map
+  data_prep <- readRDS(paste0("output/dataframe_","CBC","_spatial_gamye.rds"))
+  
+  strat_df <- data_prep %>% 
+    select(strata_name,strata_vec,non_zero,area_sq_km) %>% 
+    rename(stratum = strata_vec) %>% 
+    distinct() %>% 
+    mutate(area_weight = area_sq_km/sum(area_sq_km))
+  
+ 
+  map_cbc<- strata_map <- bbsBayes2::load_map(stratify_by = "bbs_usgs") %>% 
+    select(-area_sq_km) %>% 
+    inner_join(.,strat_df,
+               by = "strata_name") %>% 
+    arrange(stratum)  
+  
+  rm(list = c("data_prep","strat_df"))
 
-fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
-                                "Cinclus_mexicanus",
-                                "Red_Knot"),
-                  species = c("Yellow-headed Blackbird",
-                              "American Dipper",
-                              "Red Knot"),
-                  data = c("BBS",
-                           "CBC",
-                           "Shorebird"),
-                  out_base = c(paste0("Yellow-headed_Blackbird","_real_","BBS"),
-                               paste0("Cinclus_mexicanus","_CBC_B"),
-                               paste0("Red Knot","_Shorebird")),
-                  y1 = c(1966,
-                         1966,
-                         1980),
-                  strat_map_name = c("Stratum_Factored",
-                                     "strata_vec",
-                                     "stratn"))
+  ### Shorebird map
+  load(paste0("data/Red_Knot","Shorebird","_data.RData"))
+  map_shorebird <- realized_strata_map %>% 
+    rename(strata_name = hex_name,
+           stratum = stratn)
+  
+  rm(list = c("stan_data",
+              "neighbours",
+              "realized_strata_map",
+              "data_1"))
 
+  ### plot trends for selected periods
+  
+ 
+  trend_tmp1 <- trends_out %>% 
+    filter(model == "first_diff",
+           model_variant == "hier",
+           data_set == "CBC",
+           strata_name != "continent",
+           start_year == 1975,
+           end_year == 1985)
+  m1 <- map_trends(trends = trend_tmp1,
+                   base_map_blank = map_cbc,
+                   title = "",
+                   region_name = "strata_name")
+  
+  trend_tmp2 <- trends_out %>% 
+    filter(model == "first_diff",
+           model_variant == "spatial",
+           data_set == "CBC",
+           strata_name != "continent",
+           start_year == 1975,
+           end_year == 1985)
+  m2 <- map_trends(trend_tmp2,
+                   base_map_blank = map_cbc,
+                   title = "",
+                   region_name = "strata_name")
+  
 
+  
+  
+  trend_tmp3 <- trends_out %>% 
+    filter(model == "gamye",
+           model_variant == "hier",
+           data_set == "Shorebird",
+           strata_name != "continent",
+           start_year == 1980,
+           end_year == 1990)
+  m3 <- map_trends(trends = trend_tmp3,
+                   base_map_blank = map_shorebird,
+                   title = "Hierarchical",
+                   region_name = "strata_name")
+  
+  trend_tmp4 <- trends_out %>% 
+    filter(model == "gamye",
+           model_variant == "spatial",
+           data_set == "Shorebird",
+           strata_name != "continent",
+           start_year == 1980,
+           end_year == 1990)
+  m4 <- map_trends(trend_tmp4,
+                   base_map_blank = map_shorebird,
+                   title = "Spatial",
+                   region_name = "strata_name")
+  
+  print(m3 + m4 + plot_layout(guides = "collect") & 
+          theme(legend.position = "none"))
+  
+  plot_shorebird <- traj2 + m3 + m4 + plot_layout(design = "
+                                                  #11#
+                                                  2233
+                                                  ") & 
+    theme(legend.position = "none")
+  
+  
+  plot_cbc <- traj1 + m1 + m2 + plot_layout(guides = "collect",
+                                            design = "
+                                            #11#
+                                            2233
+                                            ") & 
+    theme(legend.position = "bottom",
+          legend.key.size = unit(3,"mm"),
+          legend.text = element_text(size = 7),
+          legend.title = element_text(size = 7))
+  
+  
+  plot_both <- plot_shorebird / plot_cbc + plot_layout(nrow = 2,
+                                                       ncol = 1,
+                                                       heights = c(1,2)) &
+    
+    theme(plot.margin = unit(rep(1,4),"mm"))
+  
+  pdf("Figures/Figure_5.pdf",
+      width = 7,
+      height = 4)
+print(plot_both)
 
-t1 <- tt_map_list[[1]][["TY1966-2019"]]  +
-  labs(subtitle = "BBS",
-       title = "Long-term")
-t2a <- tt_map_list[[1]][["TY1970-1980"]] +
-  labs(title = "First ten years")
-t2b <- tt_map_list[[1]][["TY2009-2019"]] +
-  labs(title = "Last ten years")
-t3 <- tt_map_list[[2]][["TY1966-2019"]] +
-  labs(subtitle = "CBC")
-t4a <- tt_map_list[[2]][["TY1970-1980"]]
-t4b <- tt_map_list[[2]][["TY2009-2019"]]
-t5 <- tt_map_list[[3]][["TY1980-2019"]] +
-  labs(subtitle = "Shorebird")
-t6a <- tt_map_list[[3]][["TY1980-1990"]]
-t6b <- tt_map_list[[3]][["TY2009-2019"]]
-
-tcomb = t1 + t2a +t2b + t3 + t4a +t4b + t5 + t6a +t6b +
-  plot_layout(ncol = 3,byrow = TRUE,
-              guides = "collect")
-
-pdf(file = paste0("Figures/Figure_7.pdf"),
-    width = 7,
-    height = 8)
-
-
-print(tcomb)
 dev.off()
-
-
-
-
-# 8 Spaghetti plot Red Knot -------------------------------------------------
-load("output/real_data_summaries.RData")
-
-
-fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
-                                "Cinclus_mexicanus",
-                                "Red_Knot"),
-                  species = c("Yellow-headed Blackbird",
-                              "Cinclus_mexicanus",
-                              "Red Knot"),
-                  species_l = c("BBS - Yellow-headed Blackbird",
-                                "CBC - American Dipper",
-                                "Shorebird - Red Knot"))
-
-Indices_all_out <- Indices_all_out %>% 
-  left_join(.,fls,by = "species")
-
-I_RK <- Indices_all_out %>% 
-  filter(species == "Red Knot")
-Iplot <- ggplot(data = I_RK,
-                aes(x = true_year,y = median))+
-  geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),
-              alpha = 0.2)+
-  geom_line(aes(colour = version))+
-  scale_y_continuous(limits = c(0,NA))+
-  scale_colour_viridis_d(aesthetics = c("colour","fill"),
-                         begin = 0,
-                         end = 0.6,
-                         direction = 1)+
-  ylab("Survey-wide mean annual predictions")+
-  xlab("")+
-  theme_classic()+
-  theme(legend.position = "none")
-
-
-load("output/Red_Knot_SW_indices.RData")
-set.seed(4)
-sel <- sample(1:max(sw_smooth$samples$.draw),200)
-rk_inds <- sw_smooth$samples %>% 
-  filter(.draw %in% sel)
-
-start_val = rk_inds %>% 
-  filter(true_year == 1980)%>% 
-  mutate(start_value = log10(.value)) %>% 
-  select(.draw,start_value) 
-rk_inds <- rk_inds %>% 
-  left_join(.,start_val,by = ".draw")
-
-spagl <- ggplot(data = rk_inds,
-                aes(x = true_year,
-                    y = .value,
-                    group = .draw,
-                    colour = start_value))+
-  geom_line(alpha = 0.3)+
-  xlab("")+
-  ylab("log(Survey-wide smooth)")+
-  theme_classic()+
-  scale_colour_viridis_c(end = 0.9)+
-  scale_y_continuous(trans = "log10")+
-  theme(legend.position = "none")
-
-pdf(file = paste0("Figures/Figure_8.pdf"),
-    width = 7,
-    height = 4)
-
-print(Iplot + spagl) 
-
-dev.off()
-
-
-
-
-

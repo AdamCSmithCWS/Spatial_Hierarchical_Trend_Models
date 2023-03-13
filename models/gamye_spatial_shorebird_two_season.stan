@@ -67,8 +67,8 @@ parameters {
   
   real<lower=0> sdnoise;    // sd of over-dispersion
   real<lower=0> sdste;    // sd of site effects
-  array[nknots_year] real<lower=0> sdbeta;    // sd of GAM coefficients among strata 
-  //real<lower=0> sdbeta;    // sd of GAM coefficients among strata 
+  //array[nknots_year] real<lower=0> sdbeta;    // sd of GAM coefficients among strata 
+  real<lower=0> sdbeta;    // sd of GAM coefficients among strata 
   real<lower=0> sdBETA;    // sd of GAM coefficients
   real<lower=0> sdyear;    // sd of year effects
   array[2] real<lower=0> sdseason;    // sd of season effects
@@ -105,7 +105,7 @@ transformed parameters {
   BETA = sdBETA*BETA_raw;
   
   for(k in 1:nknots_year){
-    beta[,k] = (sdbeta[k] * beta_raw[,k]) + BETA[k];
+    beta[,k] = (sdbeta * beta_raw[,k]) + BETA[k];
   }
   SMOOTH_pred = year_basis * BETA; 
   
@@ -144,13 +144,13 @@ model {
 
 
  // sdbeta ~ normal(0,1); //prior on sd of gam hyperparameters
-  sdbeta ~ gamma(2,2);//boundary avoiding prior 
-  //sdbeta ~ student_t(3,0,1);// prior on spatial variation of spline parameters 
+  sdbeta ~ gamma(2,4);//boundary avoiding prior 
+  //sdbeta ~ student_t(10,0,0.5);// prior on spatial variation of spline parameters 
   
   sdseason ~ std_normal();//variance of GAM parameters
   beta_raw_season_1 ~ std_normal();//GAM parameters
   beta_raw_season_2 ~ std_normal();//GAM parameters
-  STRATA ~ student_t(3,0,1);// overall species intercept 
+  STRATA ~ student_t(3,0,2);// overall species intercept 
  
   BETA_raw ~ std_normal();// prior on GAM hyperparameters
   yeareffect_raw ~ std_normal(); //prior on ▲annual fluctuations
