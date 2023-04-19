@@ -127,9 +127,9 @@ dev.off()
 model_variants <- c("non-hier","hier","spatial")
 
 model_variant_names = data.frame("model_variant" = model_variants,
-                                 variant_plot = factor(c("Non-hierarchical","Hierarchical",
+                                 variant_plot = factor(c("Non-hierarchical","Non-spatial",
                                                          "Spatial"),
-                                                       levels = c("Non-hierarchical","Hierarchical",
+                                                       levels = c("Non-hierarchical","Non-spatial",
                                                                   "Spatial"),
                                                        ordered = TRUE))
 
@@ -158,29 +158,48 @@ model <- "gamye"
     left_join(.,model_variant_names,
               by = "model_variant")
   
+  first_years <- c(1970,1992,2011) #sections to highlight with trend maps
+  
+  fy_markers <- c(first_years[1]+(0:10),
+                  first_years[2]+(0:10),
+                  first_years[3]+(0:10))
+  
+  markers <- inds_plot %>% 
+    filter(variant_plot == "Spatial") %>% 
+    ungroup() %>% 
+    select(year,index) %>% 
+    arrange(year) %>% 
+    mutate(index = ifelse(year %in% fy_markers,index,NA),
+           base = ifelse(year %in% fy_markers,0,NA))
+  
+  
   trajs <- ggplot(data = inds_plot,
                   aes(x = year, y = index))+
+    geom_ribbon(data = markers,
+                  aes(x = year,ymax = index,ymin = base),
+                  inherit.aes = FALSE,
+                  fill = grey(0.5),
+                alpha = 0.2)+
     geom_ribbon(aes(ymin = index_q_0.05, ymax = index_q_0.95,
                     fill = variant_plot),
                 alpha = 0.3)+
     geom_line(aes(colour = variant_plot))+
-    scale_colour_viridis_d(end = 0.8,begin = 0.2,
+    scale_colour_viridis_d(end = 0.6,begin = 0.2,
                            aesthetics = c("colour","fill"),
                            direction = -1)+
     guides( colour = guide_legend(title = "Model Variant"),
             fill = guide_legend(title = "Model Variant"))+
     scale_y_continuous(limits = c(0,NA))+
-    ylab("Estimated annual relative abundance")+
+    ylab("Estimated annual \n relative abundance")+
     xlab("")+
     theme_classic()+
-    theme(legend.position = "bottom",
+    theme(legend.position = "right",
           axis.title = element_text(size = 8))
    
   
    
 
 
-  first_years <- c(1970,1995,2011)
   map_hier <- vector("list",length(first_years))
   map_spatial <- vector("list",length(first_years))
   tt_out <- NULL
@@ -219,11 +238,11 @@ model <- "gamye"
   tmap <- map_trends(tt_out,
                      facetgrid = TRUE,
                      base_map_blank = base_map,
-                     facet_1 = "span",
-                     facet_2 = "variant_plot",
+                     facet_2 = "span",
+                     facet_1 = "variant_plot",
                      legend_title = "Trend",
                      add_base = FALSE)+
-    theme(legend.position = "bottom",
+    theme(legend.position = "right",
           legend.key.size = unit(3,"mm"),
           legend.text = element_text(size = 7))
     
@@ -233,16 +252,15 @@ model <- "gamye"
   
   full <- trajs / tmap +
     plot_layout(design = c("
-                           11
-                           22
-                           22
-                           22
+                           111
+                           222
+                           222
                            "))
     
   
   pdf("Figures/Figure_4.pdf",
-      width = 5,
-      height = 10)
+      width = 7,
+      height = 6.5)
   print(full)
   dev.off()
   
@@ -257,9 +275,9 @@ model <- "gamye"
   model_variants <- c("non-hier","hier","spatial")
   
   model_variant_names = data.frame("model_variant" = model_variants,
-                                   variant_plot = factor(c("Non-hierarchical","Hierarchical",
+                                   variant_plot = factor(c("Non-hierarchical","Non-spatial",
                                                            "Spatial"),
-                                                         levels = c("Non-hierarchical","Hierarchical",
+                                                         levels = c("Non-hierarchical","Non-spatial",
                                                                     "Spatial"),
                                                          ordered = TRUE))
   
@@ -288,7 +306,7 @@ model <- "gamye"
                     fill = variant_plot),
                 alpha = 0.3)+
     geom_line(aes(colour = variant_plot))+
-    scale_colour_viridis_d(end = 0.8,begin = 0.2,
+    scale_colour_viridis_d(end = 0.6,begin = 0.2,
                            aesthetics = c("colour","fill"),
                            direction = -1)+
     guides( colour = guide_legend(title = "Model Variant"),
@@ -306,7 +324,7 @@ model <- "gamye"
                     fill = variant_plot),
                 alpha = 0.3)+
     geom_line(aes(colour = variant_plot))+
-    scale_colour_viridis_d(end = 0.8,begin = 0.2,
+    scale_colour_viridis_d(end = 0.6,begin = 0.2,
                            aesthetics = c("colour","fill"),
                            direction = -1)+
     guides( colour = guide_legend(title = "Model Variant"),
@@ -391,7 +409,7 @@ model <- "gamye"
            end_year == 1990)
   m3 <- map_trends(trends = trend_tmp3,
                    base_map_blank = map_shorebird,
-                   title = "Hierarchical",
+                   title = "Non-spatial",
                    region_name = "strata_name")
   
   trend_tmp4 <- trends_out %>% 
@@ -433,9 +451,24 @@ model <- "gamye"
     
     theme(plot.margin = unit(rep(1,4),"mm"))
   
-  pdf("Figures/Figure_5.pdf",
+  pdf("Figures/Figure_5_ugly.pdf",
       width = 7,
       height = 4)
 print(plot_both)
 
 dev.off()
+
+
+pdf("Figures/Figure_5_components.pdf",
+    width = 7,
+    height = 7)
+print(traj1)
+print(traj2)
+print(m1)
+print(m2)
+print(m3)
+print(m4)
+
+dev.off()
+
+

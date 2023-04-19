@@ -7,6 +7,7 @@ library(tidyverse)
 
 
 convergence_all <- NULL
+time_all <- vector("list",length = 11)
 
 
 # Shorebirds --------------------------------------------------------------
@@ -17,6 +18,8 @@ model <- "gamye"
 model_variant <- "spatial"
 fit <- readRDS(paste0(paste("output/fit",sp_data,model_variant,model,
                             sep = "_"),".rds"))
+time_all[[1]] <- fit$time()$total/3600
+names(time_all)[1] <- paste(sp_data,model,model_variant,sep = "_")
 conv_tmp <- fit$summary() %>% 
   mutate(species = sp_data,
          model = model,
@@ -26,6 +29,8 @@ convergence_all <- bind_rows(convergence_all,conv_tmp)
 model_variant <- "hier"
 fit <- readRDS(paste0(paste("output/fit",sp_data,model_variant,model,
                             sep = "_"),".rds"))
+time_all[[2]] <- fit$time()$total/3600
+names(time_all)[2] <- paste(sp_data,model,model_variant,sep = "_")
 conv_tmp <- fit$summary()%>% 
   mutate(species = sp_data,
          model = model,
@@ -42,6 +47,8 @@ model <- "gamye"
 model_variant <- "spatial"
 fit <- readRDS(paste0(paste("output/fit",sp_data,model_variant,model,
                             sep = "_"),".rds"))
+time_all[[3]] <- fit$time()$total/3600
+names(time_all)[3] <- paste(sp_data,model,model_variant,sep = "_")
 conv_tmp <- fit$summary() %>% 
   mutate(species = sp_data,
          model = model,
@@ -51,6 +58,8 @@ convergence_all <- bind_rows(convergence_all,conv_tmp)
 model_variant <- "hier"
 fit <- readRDS(paste0(paste("output/fit",sp_data,model_variant,model,
                             sep = "_"),".rds"))
+time_all[[4]] <- fit$time()$total/3600
+names(time_all)[4] <- paste(sp_data,model,model_variant,sep = "_")
 conv_tmp <- fit$summary()%>% 
   mutate(species = sp_data,
          model = model,
@@ -64,6 +73,8 @@ model <- "first_diff"
 model_variant <- "spatial"
 fit <- readRDS(paste0(paste("output/fit",sp_data,model_variant,model,
                             sep = "_"),".rds"))
+time_all[[5]] <- fit$time()$total/3600
+names(time_all)[5] <- paste(sp_data,model,model_variant,sep = "_")
 conv_tmp <- fit$summary() %>% 
   mutate(species = sp_data,
          model = model,
@@ -73,6 +84,8 @@ convergence_all <- bind_rows(convergence_all,conv_tmp)
 model_variant <- "hier"
 fit <- readRDS(paste0(paste("output/fit",sp_data,model_variant,model,
                             sep = "_"),".rds"))
+time_all[[6]] <- fit$time()$total/3600
+names(time_all)[6] <- paste(sp_data,model,model_variant,sep = "_")
 conv_tmp <- fit$summary()%>% 
   mutate(species = sp_data,
          model = model,
@@ -89,9 +102,14 @@ convergence_all <- bind_rows(convergence_all,conv_tmp)
 
 
 sp_data <- "BBS"
-
+species <- "Eastern Whip-poor-will"
 model <- "gamye"
 model_variant <- "spatial"
+fit <- readRDS(paste0(paste("output/",species,"_",model,"_",model_variant,
+                            sep = ""),".rds"))
+time_all[[7]] <- fit$model_fit$time()$total/3600
+names(time_all)[7] <- paste(sp_data,model,model_variant,sep = "_")
+
 conv_tmp <- readRDS(paste0("output/",paste(model,model_variant,
                             sep = "_"),"_param_summary.rds"))
 
@@ -102,6 +120,11 @@ conv_tmp <- conv_tmp %>%
 convergence_all <- bind_rows(convergence_all,conv_tmp)
 
 model_variant <- "hier"
+fit <- readRDS(paste0(paste("output/",species,"_",model,"_",model_variant,
+                            sep = ""),".rds"))
+time_all[[8]] <- fit$model_fit$time()$total/3600
+names(time_all)[8] <- paste(sp_data,model,model_variant,sep = "_")
+
 conv_tmp <- readRDS(paste0("output/",paste(model,model_variant,
                                            sep = "_"),"_param_summary.rds"))
 
@@ -117,6 +140,10 @@ convergence_all <- bind_rows(convergence_all,conv_tmp)
 
 model <- "first_diff"
 model_variant <- "spatial"
+fit <- readRDS(paste0(paste("output/",species,"_",model,"_",model_variant,
+                            sep = ""),".rds"))
+time_all[[9]] <- fit$model_fit$time()$total/3600
+names(time_all)[9] <- paste(sp_data,model,model_variant,sep = "_")
 conv_tmp <- readRDS(paste0("output/",paste(model,model_variant,
                                            sep = "_"),"_param_summary.rds"))
 
@@ -127,6 +154,10 @@ conv_tmp <- conv_tmp %>%
 convergence_all <- bind_rows(convergence_all,conv_tmp)
 
 model_variant <- "hier"
+fit <- readRDS(paste0(paste("output/",species,"_",model,"_",model_variant,
+                            sep = ""),".rds"))
+time_all[[10]] <- fit$model_fit$time()$total/3600
+names(time_all)[10] <- paste(sp_data,model,model_variant,sep = "_")
 conv_tmp <- readRDS(paste0("output/",paste(model,model_variant,
                                            sep = "_"),"_param_summary.rds"))
 
@@ -137,6 +168,20 @@ conv_tmp <- conv_tmp %>%
 convergence_all <- bind_rows(convergence_all,conv_tmp)
 
 
+model_variant <- "nonhier"
+fit <- readRDS(paste0(paste("output/",species,"_",model,"_",model_variant,
+                            sep = ""),".rds"))
+time_all[[11]] <- fit$model_fit$time()$total/3600
+names(time_all)[11] <- paste(sp_data,model,model_variant,sep = "_")
+conv_tmp <- readRDS(paste0("output/",paste(model,model_variant,
+                                           sep = "_"),"_param_summary.rds"))
+
+conv_tmp <- conv_tmp %>% 
+  mutate(species = sp_data,
+         model = model,
+         model_variant = model_variant)
+convergence_all <- bind_rows(convergence_all,conv_tmp)
+
 convergence_all <- convergence_all %>% 
   mutate(variable_type = stringr::str_extract(variable, "^\\w+"))
 
@@ -146,11 +191,15 @@ saveRDS(convergence_all,
         file = "output/convergence_all_real_data.rds")
 
 
+saveRDS(time_all,
+        file = "output/fit_time_all_real_data.rds")
+
+
 
 ess_fail <- convergence_all %>% 
   filter(ess_bulk < 400)
 rhat_fail <- convergence_all %>% 
-  filter(rhat > 1.02)
+  filter(rhat > 1.02 )
 
 convergence_summary <- convergence_all %>% 
   filter(is.finite(rhat),

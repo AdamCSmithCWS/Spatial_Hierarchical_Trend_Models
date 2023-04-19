@@ -251,7 +251,7 @@ trend_comp_plot = ggplot(data = trend_comp,
   facet_wrap(vars(peripheral))+
   labs(title = "GAMYE")+
   guides( colour = guide_legend(title = "Simulated mean count"))+
-  ylab("Difference in trend error \n (Hierarchical-Spatial)")+
+  ylab("Difference in trend error \n (Non-spatial-Spatial)")+
   geom_hline(yintercept = 0,alpha = 0.5)
 
 
@@ -264,7 +264,7 @@ trend_comp_plot2 = ggplot(data = trend_comp,
   facet_wrap(vars(peripheral))+
   guides( colour = guide_legend(title = "Simulated mean count"))+
   labs(title = "First-Difference")+
-  ylab("(Hierarchical - Spatial)")+
+  ylab("(Non-spatial - Spatial)")+
   geom_hline(yintercept = 0,alpha = 0.5)
 
 
@@ -276,12 +276,12 @@ trend_comp_plot3 = ggplot(data = trend_comp,
   facet_wrap(vars(peripheral))+
   labs(title = "First-Difference")+
   guides( colour = guide_legend(title = "Simulated mean count"))+
-  ylab("(Non-Hierarchical - Hierarchical)")+
+  ylab("(Non-hierarchical - Non-spatial)")+
   geom_hline(yintercept = 0,alpha = 0.5)
 
 
 
-pdf("Figures/Figure_3.pdf",
+pdf("Figures/Figure_3_supplement.pdf",
     width = 7.5,
     height = 3.5)
 print(trend_comp_plot + trend_comp_plot2 + trend_comp_plot3 +
@@ -292,6 +292,18 @@ print(trend_comp_plot + trend_comp_plot2 + trend_comp_plot3 +
               legend.position = "bottom"))
 dev.off()
 
+
+
+pdf("Figures/Figure_3.pdf",
+    width = 5.5,
+    height = 3.5)
+print(trend_comp_plot + trend_comp_plot2 +
+        plot_layout(guides = "collect") &
+        xlab("Trend Term") &
+        guides( colour = guide_legend(title = "Simulated mean count")) &
+        theme(text = element_text(size = 9),
+              legend.position = "bottom"))
+dev.off()
 
 # plot the trajectories ---------------------------------------------------
 
@@ -410,9 +422,9 @@ for(model_variant in model_variants[2:3]){
 
 
 model_variant_names = data.frame("model_variant" = model_variants,
-                         variant_plot = factor(c("Non-hierarchical","Hierarchical",
+                         variant_plot = factor(c("Non-hierarchical","Non-spatial",
                                                  "Spatial"),
-                                               levels = c("Non-hierarchical","Hierarchical",
+                                               levels = c("Non-hierarchical","Non-spatial",
                                                           "Spatial"),
                                                ordered = TRUE))
 
@@ -432,7 +444,8 @@ inds_plot <- inds_out %>%
                               ordered = TRUE),
          model_plot = ifelse(model == "first_diff","First Difference","GAMYE")) %>% 
   left_join(.,model_variant_names,
-            by = "model_variant")
+            by = "model_variant") %>% 
+  filter(variant_plot != "Non-hierarchical")
   
 
 
@@ -455,7 +468,7 @@ inds_plot <- inds_out %>%
                     ymax = index_q_0.95,
                     fill = variant_plot),
                 alpha = 0.2)+
-    scale_colour_viridis_d(end = 0.8,begin = 0.2,
+    scale_colour_viridis_d(end = 0.6,begin = 0.2,
                            aesthetics = c("colour","fill"),
                            direction = -1)+
     guides( colour = guide_legend(title = "Model Variant"),
