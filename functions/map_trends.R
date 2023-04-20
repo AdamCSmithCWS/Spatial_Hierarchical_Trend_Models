@@ -20,6 +20,8 @@ map_trends <- function(trends = trends,
   }
 
   if(facetgrid){
+    if(!is.null(facet_2) &
+       !is.null(facet_1)){
     trends <- trends %>% 
       rename_with(.,~gsub(facet_1,
                           "fac1",
@@ -27,6 +29,20 @@ map_trends <- function(trends = trends,
       rename_with(.,~gsub(facet_2,
                           "fac2",
                           .x))
+    }else{
+    if(!is.null(facet_1)){
+      trends <- trends %>% 
+        rename_with(.,~gsub(facet_1,
+                            "fac1",
+                            .x))  
+    }
+      if(!is.null(facet_2)){
+        trends <- trends %>% 
+          rename_with(.,~gsub(facet_2,
+                              "fac2",
+                              .x))  
+      }
+    }
   }
  
   
@@ -121,9 +137,20 @@ if(plot_trend){
   }
   
   if(facetgrid){
+    if(is.null(facet_2)){
   plot_out<- plot_out +
-    facet_grid(rows = vars(fac1),
-               cols = vars(fac2))
+    facet_grid(rows = vars(fac1))
+    }
+    if(is.null(facet_1)){
+      plot_out<- plot_out +
+        facet_grid(cols = vars(fac2))
+    }
+    if(!is.null(facet_2) &
+       !is.null(facet_1)){
+      plot_out<- plot_out +
+        facet_grid(rows = vars(fac1),
+                   cols = vars(fac2))
+    }
   }
   
   plot_out<- plot_out +

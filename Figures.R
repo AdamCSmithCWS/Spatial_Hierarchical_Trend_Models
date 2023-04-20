@@ -372,7 +372,9 @@ model <- "gamye"
   
   
   trends_out <- readRDS("output/All_CBC_and_shorebird_trends.rds")%>% 
-    mutate(trend_se = width_CI/4)
+    mutate(trend_se = width_CI/4) %>% 
+    left_join(.,model_variant_names,
+              by = "model_variant")
 
   
   ### CBC map
@@ -409,7 +411,7 @@ model <- "gamye"
  
   trend_tmp1 <- trends_out %>% 
     filter(model == "first_diff",
-           model_variant == "hier",
+           model_variant %in% c("spatial","hier"),
            data_set == "CBC",
            strata_name != "continent",
            start_year == 1975,
@@ -417,39 +419,26 @@ model <- "gamye"
   m1 <- map_trends(trends = trend_tmp1,
                    base_map_blank = map_cbc,
                    title = "",
-                   region_name = "strata_name")
+                   region_name = "strata_name",
+                   facetgrid = TRUE,
+                   facet_2 = "variant_plot")
   m1_se <- map_trends(trends = trend_tmp1,
                    base_map_blank = map_cbc,
                    title = "",
                    region_name = "strata_name",
+                   facetgrid = TRUE,
+                   facet_2 = "variant_plot",
                    plot_trend = FALSE,
                    variable = "trend_se",
                    legend_title = "SE of trend")
   
-  trend_tmp2 <- trends_out %>% 
-    filter(model == "first_diff",
-           model_variant == "spatial",
-           data_set == "CBC",
-           strata_name != "continent",
-           start_year == 1975,
-           end_year == 1985)
-  m2 <- map_trends(trend_tmp2,
-                   base_map_blank = map_cbc,
-                   title = "",
-                   region_name = "strata_name")
-  m2_se <- map_trends(trends = trend_tmp2,
-                      base_map_blank = map_cbc,
-                      title = "",
-                      region_name = "strata_name",
-                      plot_trend = FALSE,
-                      variable = "trend_se",
-                      legend_title = "SE of trend")
+
 
   
   
   trend_tmp3 <- trends_out %>% 
     filter(model == "gamye",
-           model_variant == "hier",
+           model_variant %in% c("spatial","hier"),
            data_set == "Shorebird",
            strata_name != "continent",
            start_year == 1980,
@@ -457,51 +446,39 @@ model <- "gamye"
   m3 <- map_trends(trends = trend_tmp3,
                    base_map_blank = map_shorebird,
                    title = "Non-spatial",
-                   region_name = "strata_name")
+                   region_name = "strata_name",
+                   facetgrid = TRUE,
+                   facet_2 = "variant_plot")
   m3_se <- map_trends(trends = trend_tmp3,
                       base_map_blank = map_shorebird,
                       title = "",
                       region_name = "strata_name",
+                      facetgrid = TRUE,
+                      facet_2 = "variant_plot",
                       plot_trend = FALSE,
                       variable = "trend_se",
                       legend_title = "SE of trend")
   
-  trend_tmp4 <- trends_out %>% 
-    filter(model == "gamye",
-           model_variant == "spatial",
-           data_set == "Shorebird",
-           strata_name != "continent",
-           start_year == 1980,
-           end_year == 1990)
-  m4 <- map_trends(trend_tmp4,
-                   base_map_blank = map_shorebird,
-                   title = "Spatial",
-                   region_name = "strata_name")
-  m4_se <- map_trends(trend_tmp4,
-                   base_map_blank = map_shorebird,
-                   title = "Spatial",
-                   region_name = "strata_name",
-                   plot_trend = FALSE,
-                   variable = "trend_se",
-                   legend_title = "SE of trend")
-  
-  print(m3 + m4 + plot_layout(guides = "collect") & 
-          theme(legend.position = "none"))
-  
-  plot_shorebird <- traj2 + m3 + m4  & 
+ 
+
+  plot_shorebird <- traj2 + m3+ 
+    plot_layout(nrow = 1, ncol = 2,
+                widths = c(1,3))  & 
     theme(legend.position = "none")
   
   
-  plot_cbc <- traj1 + m1 + m2 & 
+  plot_cbc <- traj1 + m1+ 
+    plot_layout(nrow = 1, ncol = 2,
+                widths = c(1,3))  & 
     theme(legend.position = "bottom",
           legend.key.size = unit(3,"mm"),
           legend.text = element_text(size = 7),
           legend.title = element_text(size = 7))
   
   
-  plot_both <- plot_shorebird / plot_cbc + plot_layout(nrow = 2,
-                                                       ncol = 1,
-                                                       heights = c(1,2)) &
+  plot_both <- plot_shorebird / plot_cbc + 
+    plot_layout(nrow = 2, ncol = 1,
+                heights = c(1,1)) &
     
     theme(plot.margin = unit(rep(1,4),"mm"))
   
@@ -513,23 +490,24 @@ print(plot_both)
 dev.off()
 
 
-plot_shorebird_se <- traj2 + m3_se + m4_se + plot_layout(nrow = 1,
-                                                         ncol = 3,
-                                                         widths = c(1,1,1))   & 
+plot_shorebird_se <- traj2 + m3_se+ 
+  plot_layout(nrow = 1, ncol = 2,
+              widths = c(1,3))  & 
   theme(legend.position = "none")
 
 
-plot_cbc_se <- traj1 + m1_se + m2_se & 
+plot_cbc_se <- traj1 + m1_se+ 
+  plot_layout(nrow = 1, ncol = 2,
+              widths = c(1,3))  & 
   theme(legend.position = "bottom",
         legend.key.size = unit(3,"mm"),
         legend.text = element_text(size = 7),
         legend.title = element_text(size = 7))
 
 
-plot_both_se <- plot_shorebird_se / plot_cbc_se + plot_layout(nrow = 2,
-                                                     ncol = 1,
-                                                     heights = c(1,2)) &
-  
+plot_both_se <- plot_shorebird_se / plot_cbc_se + 
+  plot_layout(nrow = 2, ncol = 1,
+              heights = c(1,1)) &
   theme(plot.margin = unit(rep(1,4),"mm"))
 
 pdf("Figures/Figure_5_se_ugly.pdf",
