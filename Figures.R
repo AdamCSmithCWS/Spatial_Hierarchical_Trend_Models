@@ -194,7 +194,9 @@ model <- "gamye"
     xlab("")+
     theme_classic()+
     theme(legend.position = "right",
-          axis.title = element_text(size = 8))
+          legend.margin = margin(0,0,0,0),
+          plot.margin = unit(c(1,4,1,1),"mm"),
+          axis.title = element_text(size = 9))
    
   
    
@@ -241,11 +243,29 @@ model <- "gamye"
                      facet_2 = "span",
                      facet_1 = "variant_plot",
                      legend_title = "Trend",
-                     add_base = FALSE)+
+                     add_base = FALSE,
+                     zoom_out = 0.01)+
     theme(legend.position = "right",
-          legend.key.size = unit(3,"mm"),
-          legend.text = element_text(size = 7))
+          legend.key.size = unit(4,"mm"),
+          legend.text = element_text(size = 9),
+          legend.title = element_text(size = 12))
     
+  tt_out <- tt_out %>% 
+    mutate(trend_se = width_of_95_percent_credible_interval/4)
+  tmapse <- map_trends(tt_out,
+                       plot_trend = FALSE,
+                       variable = "trend_se",
+                       legend_title = "SE of trend",
+                     facetgrid = TRUE,
+                     base_map_blank = base_map,
+                     facet_2 = "span",
+                     facet_1 = "variant_plot",
+                     add_base = FALSE,
+                     zoom_out = 0.01)+
+    theme(legend.position = "right",
+          legend.key.size = unit(4,"mm"),
+          legend.text = element_text(size = 9),
+          legend.title = element_text(size = 12))
   
   
   
@@ -264,7 +284,20 @@ model <- "gamye"
   print(full)
   dev.off()
   
+  
+  fullse <- trajs / tmapse +
+    plot_layout(design = c("
+                           111
+                           222
+                           222
+                           "))
 
+  pdf("Figures/Supplement_Figure_4_SE.pdf",
+      width = 7,
+      height = 6.5)
+  print(fullse)
+  dev.off()
+  
   
   
   
@@ -338,7 +371,8 @@ model <- "gamye"
   
   
   
-  trends_out <- readRDS("output/All_CBC_and_shorebird_trends.rds")
+  trends_out <- readRDS("output/All_CBC_and_shorebird_trends.rds")%>% 
+    mutate(trend_se = width_CI/4)
 
   
   ### CBC map
@@ -379,11 +413,18 @@ model <- "gamye"
            data_set == "CBC",
            strata_name != "continent",
            start_year == 1975,
-           end_year == 1985)
+           end_year == 1985) 
   m1 <- map_trends(trends = trend_tmp1,
                    base_map_blank = map_cbc,
                    title = "",
                    region_name = "strata_name")
+  m1_se <- map_trends(trends = trend_tmp1,
+                   base_map_blank = map_cbc,
+                   title = "",
+                   region_name = "strata_name",
+                   plot_trend = FALSE,
+                   variable = "trend_se",
+                   legend_title = "SE of trend")
   
   trend_tmp2 <- trends_out %>% 
     filter(model == "first_diff",
@@ -396,7 +437,13 @@ model <- "gamye"
                    base_map_blank = map_cbc,
                    title = "",
                    region_name = "strata_name")
-  
+  m2_se <- map_trends(trends = trend_tmp2,
+                      base_map_blank = map_cbc,
+                      title = "",
+                      region_name = "strata_name",
+                      plot_trend = FALSE,
+                      variable = "trend_se",
+                      legend_title = "SE of trend")
 
   
   
@@ -411,6 +458,13 @@ model <- "gamye"
                    base_map_blank = map_shorebird,
                    title = "Non-spatial",
                    region_name = "strata_name")
+  m3_se <- map_trends(trends = trend_tmp3,
+                      base_map_blank = map_shorebird,
+                      title = "",
+                      region_name = "strata_name",
+                      plot_trend = FALSE,
+                      variable = "trend_se",
+                      legend_title = "SE of trend")
   
   trend_tmp4 <- trends_out %>% 
     filter(model == "gamye",
@@ -423,22 +477,22 @@ model <- "gamye"
                    base_map_blank = map_shorebird,
                    title = "Spatial",
                    region_name = "strata_name")
+  m4_se <- map_trends(trend_tmp4,
+                   base_map_blank = map_shorebird,
+                   title = "Spatial",
+                   region_name = "strata_name",
+                   plot_trend = FALSE,
+                   variable = "trend_se",
+                   legend_title = "SE of trend")
   
   print(m3 + m4 + plot_layout(guides = "collect") & 
           theme(legend.position = "none"))
   
-  plot_shorebird <- traj2 + m3 + m4 + plot_layout(design = "
-                                                  #11#
-                                                  2233
-                                                  ") & 
+  plot_shorebird <- traj2 + m3 + m4  & 
     theme(legend.position = "none")
   
   
-  plot_cbc <- traj1 + m1 + m2 + plot_layout(guides = "collect",
-                                            design = "
-                                            #11#
-                                            2233
-                                            ") & 
+  plot_cbc <- traj1 + m1 + m2 & 
     theme(legend.position = "bottom",
           legend.key.size = unit(3,"mm"),
           legend.text = element_text(size = 7),
@@ -455,6 +509,33 @@ model <- "gamye"
       width = 7,
       height = 4)
 print(plot_both)
+
+dev.off()
+
+
+plot_shorebird_se <- traj2 + m3_se + m4_se + plot_layout(nrow = 1,
+                                                         ncol = 3,
+                                                         widths = c(1,1,1))   & 
+  theme(legend.position = "none")
+
+
+plot_cbc_se <- traj1 + m1_se + m2_se & 
+  theme(legend.position = "bottom",
+        legend.key.size = unit(3,"mm"),
+        legend.text = element_text(size = 7),
+        legend.title = element_text(size = 7))
+
+
+plot_both_se <- plot_shorebird_se / plot_cbc_se + plot_layout(nrow = 2,
+                                                     ncol = 1,
+                                                     heights = c(1,2)) &
+  
+  theme(plot.margin = unit(rep(1,4),"mm"))
+
+pdf("Figures/Figure_5_se_ugly.pdf",
+    width = 7,
+    height = 4)
+print(plot_both_se)
 
 dev.off()
 

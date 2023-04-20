@@ -130,6 +130,7 @@ if(plot_trend){
     coord_sf(xlim = map_ext[c("xmin","xmax")]*zoom_out,
              ylim = map_ext[c("ymin","ymax")]*zoom_out)+
     theme(plot.margin = unit(rep(1,4),"mm"),
+          panel.spacing = unit(2,"mm"),
           axis.text = element_text(size = 6),
           title = element_text(size = 8))
   
