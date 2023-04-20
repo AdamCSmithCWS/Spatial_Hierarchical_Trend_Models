@@ -484,7 +484,7 @@ model <- "gamye"
   
   pdf("Figures/Figure_5_ugly.pdf",
       width = 7,
-      height = 4)
+      height = 5)
 print(plot_both)
 
 dev.off()
@@ -512,7 +512,7 @@ plot_both_se <- plot_shorebird_se / plot_cbc_se +
 
 pdf("Figures/Figure_5_se_ugly.pdf",
     width = 7,
-    height = 4)
+    height = 5)
 print(plot_both_se)
 
 dev.off()
