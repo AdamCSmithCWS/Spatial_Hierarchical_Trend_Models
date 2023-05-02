@@ -40,6 +40,7 @@ pm <- prepare_model(ps,
 fit <- run_model(pm,
                  refresh = 400,
                  adapt_delta = 0.8,
+                 max_treedepth = 11,
                  output_dir = "output",
                  output_basename = paste(species,model,model_variant,sep = "_"))
 

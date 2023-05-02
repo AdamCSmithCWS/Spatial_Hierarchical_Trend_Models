@@ -113,9 +113,29 @@ map
 dev.off()
 
 
+# uncertainty map
+tse_plot <- trends$trends %>% 
+  filter(region_type == "stratum") %>% 
+  mutate(trend_se = width_of_95_percent_credible_interval/4,
+         strata_name = region)
+
+map_base <- load_map("latlong")
+
+m1_se <- map_trends(trends = tse_plot,
+                    base_map_blank = map_base,
+                    title = "",
+                    region_name = "strata_name",
+                    facetgrid = FALSE,
+                    plot_trend = FALSE,
+                    variable = "trend_se",
+                    legend_title = "SE of trend")
 
 
-
+pdf("figures/Figure_S6.pdf",
+    width = 4.5,
+    height = 4)
+m1_se
+dev.off()
 
 
 
@@ -292,7 +312,7 @@ model <- "gamye"
                            222
                            "))
 
-  pdf("Figures/Supplement_Figure_4_SE.pdf",
+  pdf("Figures/Figure_S4.pdf",
       width = 7,
       height = 6.5)
   print(fullse)
@@ -300,7 +320,232 @@ model <- "gamye"
   
   
   
+
   
+  # Supplement 4 real data overall trajectories and maps for BBS --------------------------
+  
+  model_variants <- c("non-hier","hier","spatial")
+  
+  model_variant_names = data.frame("model_variant" = model_variants,
+                                   variant_plot = factor(c("Non-hierarchical","Non-spatial",
+                                                           "Spatial"),
+                                                         levels = c("Non-hierarchical","Non-spatial",
+                                                                    "Spatial"),
+                                                         ordered = TRUE))
+  
+  species <- "Eastern Whip-poor-will"
+  
+  stratification = "bbs_usgs"
+  base_map <- load_map(stratification)
+  model <- "first_diff"
+  
+  
+  inds_hier <- readRDS(paste0("output/",paste("indices",species,model,"hier",sep = "_")))
+  inds_spatial <- readRDS(paste0("output/",paste("indices",species,model,"spatial",sep = "_")))
+  inds_nonhier <- readRDS(paste0("output/",paste("indices",species,model,"nonhier",sep = "_")))
+  
+  
+  inds_hier_plot <- inds_hier$indices %>% 
+    filter(region == "continent") %>% 
+    mutate(model_variant = "hier")
+  inds_nonhier_plot <- inds_nonhier$indices %>% 
+    filter(region == "continent") %>% 
+    mutate(model_variant = "non-hier")
+  inds_spatial_plot <- inds_spatial$indices %>% 
+    filter(region == "continent") %>% 
+    mutate(model_variant = "spatial")
+  
+  
+  inds_plot <- bind_rows(inds_hier_plot,
+                         inds_spatial_plot,
+                         inds_nonhier_plot) %>% 
+    left_join(.,model_variant_names,
+              by = "model_variant")
+  
+  first_years <- c(1970,1992,2011) #sections to highlight with trend maps
+  
+  fy_markers <- c(first_years[1]+(0:10),
+                  first_years[2]+(0:10),
+                  first_years[3]+(0:10))
+  
+  markers <- inds_plot %>% 
+    filter(variant_plot == "Spatial") %>% 
+    ungroup() %>% 
+    select(year,index) %>% 
+    arrange(year) %>% 
+    mutate(index = ifelse(year %in% fy_markers,index,NA),
+           base = ifelse(year %in% fy_markers,0,NA))
+  
+  
+  trajs <- ggplot(data = inds_plot,
+                  aes(x = year, y = index))+
+    geom_ribbon(data = markers,
+                aes(x = year,ymax = index,ymin = base),
+                inherit.aes = FALSE,
+                fill = grey(0.5),
+                alpha = 0.2)+
+    geom_ribbon(aes(ymin = index_q_0.05, ymax = index_q_0.95,
+                    fill = variant_plot),
+                alpha = 0.3)+
+    geom_line(aes(colour = variant_plot))+
+    scale_colour_viridis_d(end = 0.8,begin = 0.2,
+                           aesthetics = c("colour","fill"),
+                           direction = -1)+
+    guides( colour = guide_legend(title = "Model Variant"),
+            fill = guide_legend(title = "Model Variant"))+
+    scale_y_continuous(limits = c(0,NA))+
+    ylab("Estimated annual \n relative abundance")+
+    xlab("")+
+    theme_classic()+
+    theme(legend.position = "right",
+          legend.margin = margin(0,0,0,0),
+          plot.margin = unit(c(1,4,1,1),"mm"),
+          axis.title = element_text(size = 9))
+  
+  
+  
+  
+  
+  map_hier <- vector("list",length(first_years))
+  map_spatial <- vector("list",length(first_years))
+  map_nonhier <- vector("list",length(first_years))
+  tt_out <- NULL
+  for(j in 1:length(first_years)){
+    
+    ys <- first_years[j]
+    ye <- ys+10
+    
+    tt_hier <- generate_trends(inds_hier,
+                               min_year = ys,
+                               max_year = ye) 
+    
+    tt_hier <- tt_hier[["trends"]] %>% 
+      filter(region_type == "stratum") %>% 
+      mutate(model_variant = "hier")
+    
+    tt_nonhier <- generate_trends(inds_nonhier,
+                               min_year = ys,
+                               max_year = ye) 
+    
+    tt_nonhier <- tt_nonhier[["trends"]] %>% 
+      filter(region_type == "stratum") %>% 
+      mutate(model_variant = "non-hier")
+    
+    tt_spatial <- generate_trends(inds_spatial,
+                                  min_year = ys,
+                                  max_year = ye)
+    tt_spatial <- tt_spatial[["trends"]] %>% 
+      filter(region_type == "stratum") %>% 
+      mutate(model_variant = "spatial")
+    
+    tt_out <- bind_rows(tt_out,
+                        tt_hier)
+    tt_out <- bind_rows(tt_out,
+                        tt_nonhier)
+    tt_out <- bind_rows(tt_out,
+                        tt_spatial)
+    
+    
+  }
+  
+  tt_out <- tt_out %>% 
+    mutate(span = paste(start_year,end_year,sep = "-")) %>% 
+    left_join(.,model_variant_names,
+              by = "model_variant")
+  tmap <- map_trends(tt_out,
+                     facetgrid = TRUE,
+                     base_map_blank = base_map,
+                     facet_2 = "span",
+                     facet_1 = "variant_plot",
+                     legend_title = "Trend",
+                     add_base = FALSE,
+                     zoom_out = 0.01)+
+    theme(legend.position = "right",
+          legend.key.size = unit(4,"mm"),
+          legend.text = element_text(size = 9),
+          legend.title = element_text(size = 12))
+  
+  tt_out <- tt_out %>% 
+    mutate(trend_se = width_of_95_percent_credible_interval/4)
+  tmapse <- map_trends(tt_out,
+                       plot_trend = FALSE,
+                       variable = "trend_se",
+                       legend_title = "SE of trend",
+                       facetgrid = TRUE,
+                       base_map_blank = base_map,
+                       facet_2 = "span",
+                       facet_1 = "variant_plot",
+                       add_base = FALSE,
+                       zoom_out = 0.01)+
+    theme(legend.position = "right",
+          legend.key.size = unit(4,"mm"),
+          legend.text = element_text(size = 9),
+          legend.title = element_text(size = 12))
+  
+  
+  
+  
+  full <- trajs / tmap +
+    plot_layout(design = c("
+                           111
+                           222
+                           222
+                           222
+                           "))
+  
+  
+  pdf("Figures/Figure_S2.pdf",
+      width = 7,
+      height = 8.5)
+  print(full)
+  dev.off()
+  
+  
+  fullse <- trajs / tmapse +
+    plot_layout(design = c("
+                           111
+                           222
+                           222
+                           222
+                           "))
+  
+  pdf("Figures/Figure_S2_SE.pdf",
+      width = 7,
+      height = 8.5)
+  print(fullse)
+  dev.off()
+  
+  
+  # compare trend magnitude with amount of data by time-period and model type
+  
+  tt_out <- tt_out %>% 
+    mutate(abs_trend = abs(trend))
+  
+  trend_ncounts <- ggplot(data = tt_out,
+                          aes(x = n_routes,
+                              y = abs_trend,
+                              colour = variant_plot)) +
+    geom_point(alpha = 0.8)+
+    scale_colour_viridis_d(end = 0.8,begin = 0.2,
+                           aesthetics = c("colour"),
+                           direction = -1)+
+    scale_x_continuous(trans = "sqrt")+
+    ylab("Absolute value of trend")+
+    xlab("Number of BBS routes in stratum")+
+    guides( colour = guide_legend(title = "Model Variant"))+
+    theme_bw()+
+    geom_smooth(se = FALSE,
+                method = "loess",
+                span = 1)+
+    facet_grid(cols = vars(span))
+  
+  
+  pdf("Figures/Figure_S3.pdf",
+      width = 7,
+      height = 4.5)
+  print(trend_ncounts)
+  dev.off()
+
   
 
 # 5 trajectories and trend maps for CBC and Shorebird ---------------------
