@@ -1,0 +1,151 @@
+---
+title: "Priors and Prior simulation results"
+output: pdf_document
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r setup, message=FALSE,echo=FALSE,error=TRUE}
+options(scipen=99999)
+library(tidyverse)
+library(cmdstanr)
+library(mgcv) 
+library(patchwork)
+library(kableExtra)
+library(bbsBayes)
+
+tb_sims <- data.frame(model = c(rep("gamye",2),
+                                rep("first_difference",3)),
+                      spatial = c(FALSE,TRUE,
+                                  FALSE,FALSE,TRUE),
+                      hierarchical = c(TRUE,TRUE,
+                                       FALSE,TRUE,TRUE),
+                      model_file = c("gamye_non_spatial_prior_sim.stan",
+                                "gamye_spatial_prior_sim.stan",
+                                "first_difference_non_hierarchical_prior_sim.stan",
+                                "first_difference_non_spatial_prior_sim.stan",
+                                "first_difference_spatial_prior_sim.stan"),
+                      prior_time = c(1,1,
+                                    NA,0.1,0.1),
+                      prior_sd_time = c(1,1,
+                                        0.2,0.2,0.2),
+                      prior_yeareffects = c(10,10,
+                                        NA,NA,NA))
+
+```
+
+# Priors
+
+Priors for standard deviations ($\sigma$) were generally weakly informative, half standard t-distributions with 3 degrees of freedom (e.g., $\sigma_\theta \sim \left\|t(3,0,1)\right\|$ ), which encompass the range of plausible values given the log-scale models.
+However, some priors on the standard deviations were set to provide a regularizing effect to help constrain the parameters to reasonable values when the data were sparse.
+For example, we set the priors for the standard deviations of the among observer variation in the BBS model so that 95% of the prior mass was \< 1.0 ( $\sigma_\omega \sim \left|normal(0,0.3)\right|$ ).
+This somewhat informative prior is reasonable in that it suggests that more than a 2-fold variation in mean counts among observers is relatively rare (i.e., 95% of observers mean counts will fall somewhere between half as many and twice as many birds as an average observer, all else being equal).
+
+We used a prior simulation to establish weakly informative and meaningful priors for the scale of the spline coefficients in the GAMYE ( $\sigma_{B_i^{\prime}}$ and $\sigma_{B_i^{\prime\prime}}$ ) and the annual difference parameters in the first-difference models ($\sigma_{\pi_i^{\prime}}$ and $\sigma_{\pi_i^{\prime\prime}}$).
+
+# Prior Simulation of parameters that control the population trajectories in spatial status and trend models
+
+Our overall goal was to demonstrate some weakly informative priors for the status and trend models based on the realised trend estimates from \>50 years of monitoring data from two North American bird monitoring programs, the North American Breeding Bird Survey (BBS) and the Christmas Bird Count (CBC).
+Conceptually, our goal is to define priors for population status and trend models that reflect our current knowledge about the rates of change and variation in rates of change for bird populations in North America.
+For omnibus models applied to multi-species surveys like the CBC, BBS, and Shorebird migration monitoring, we suggest that priors with a weak regularizing effect are preferable to priors that imply more temporal and spatial variation.
+
+1.  The weakly informative and mildly regularising priors reflect two explicit assumptions:\
+    that rates of population change and variation in those rates for any given species are very likely to fall somewhere within the range of comparable parameter estimates for past data from all of the other species in similar monitoring programs.
+
+2.  That extreme trends and extreme levels of variation in trends are unlikely without evidence to support those extreme values.
+
+These simulations demonstrate the distribution of predictions from these models when there are no data.
+Given the broad spatial and temporal scale of these monitoring programs and the 1000s - 100,000s of observations for any given species, these priors are primarily relevant in the most data-sparse regions or time-periods for any given species.
+
+## Methods overview
+
+Using the published annual indices of relative abundance (i.e., the population trajectories) published by the USGS and Audubon, we can generate reasonable estimates of the realised distributions for some key population parameters for North American birds.
+Together, these two programs estimate population trajectories and trends for \> 600 species of birds.
+Using these population trajectories we estimated trends in populations at two spatial scales: province/state and survey-wide.
+We estimated the spatial variation in the trends by estimating the standard deviation of province/state trends within species.
+We estimated these trends and spatial variation in trends for a range of temporal scales, including 1-year annual fluctuations, short-term trends, and long-term trends.
+
+We then compared prior predictions of trends from our status and trend models with the realised distributions of trends and variation in trends.
+These comparisons allow us to choose weakly informative priors for the status and trend models that are sufficiently flexible to cover most of the observed variation in trajectories without including significant prior probability for implausible rates of population change or regional variations in those rates.
+Specifically, we use these simulations to set priors on the spline parameters and annual fluctuations in the GAMYE, annual differences in the first-difference model, and the variation among regions in these same parameters (both spatially explicit and non-spatial versions).
+
+```{r load saved figures, echo=FALSE}
+
+sd_overview <- readRDS("output/sd_overview.rds")
+sw_overview <- readRDS("output/survey_wide_overview.rds")
+sp_overview <- readRDS("output/state_province_overview.rds")
+sd_overview_bbs <- readRDS("output/sd_overview_bbs.rds")
+
+```
+
+## Simulation summary
+
+For both the spatial and non-spatial GAMYE models, we used the following priors for the hyperparameters that control the mean overall smooth and the year-effects (random annual fluctuations around the smooth) within each stratum:
+
+-   standard deviation of the spline parameters that govern the shape and flexibility of the overall mean smooth = $\sigma_{B_i^{\prime}} \sim \left|t(3,0,1)\right|$.
+
+-   standard deviation of the year-effects in a given stratum = $\sigma_{\gamma_i} \sim Gamma(2,10)$.
+    This is a boundary avoiding prior that puts 95% of the prior mass at values less than 0.5, annual fluctuations greater than \~50% are unlikely, but the long tail allows for much larger values when supported by the data.
+
+For the spatial GAMYE, to control the variation in the shape of the smooth component of the population trajectory in each region:
+
+-   standard deviation for a given knot in the basis function controlling the variation among regions = $\sigma_{B_i^{\prime\prime}} \sim \left|normal(0,1)\right|$.
+
+For the non-spatial GAMYE, to control the variation in the shape of the smooth component of the population trajectory in each region:
+
+-   standard deviation of the collection of spline parameters in each region = $\sigma_{B_i^{\prime\prime}} \sim \left|normal(0,1)\right|$.
+
+For the spatial and non-spatial first difference models, the standard deviation of the differences between subsequent years control the shape of the population trajectory.
+We used the same priors in these two models:
+
+-   standard deviation of the differences between years in the overall mean population trajectory = $\sigma_{\pi_i^{\prime}} \sim \left|t(3,0,0.1)\right|$.
+    This prior suggests that it is unlikely that the average annual changes in the survey-wide (continental) population would be greater than 20%.
+
+-   standard deviation of the among strata variation in the annual change in populations = $\sigma_{\pi_i^{\prime\prime}} \sim \left|normal(3,0,0.2)\right|$.
+    This prior suggests that it is unlikely that the average among strata variation in annual population change would be greater than 40%.
+
+For the non-hierarchical first difference model, population trajectories are estimated independently in each stratum, and there is no mean overall trajectory.
+In this model only one parameter controls the shape of the population trajectory in a given stratum:
+
+-   standard deviation of the differences between years in the population trajectory = $\sigma_{\pi_i^{\prime\prime}} \sim \left|normal(3,0,0.2)\right|$. This prior suggests that it is unlikely that the average annual changes in the stratum-level population would be greater than 40%.
+
+These plots show the frequency distribution of prior predictions from the various models in coloured lines against the distribution of realised trend estimates from all species in both the BBS and CBC datasets, for all possible 1-year, 10-year, and 50-year periods in the datasets 1966-2019.
+To simplify the displays and to account for any bias in the direction of the realised trends from the BBS and CBC, we converted all trends (prior predictions and realised values) to their absolute values.
+
+```{r, echo=FALSE}
+print(sw_overview)
+```
+
+The prior predictive distributions of the absolute value of survey-wide trends align closely with the realised distribution of absolute values of survey-wide trends for various time-scales.
+
+```{r, echo=FALSE}
+print(sp_overview)
+```
+
+The prior distributions of the absolute values of strata-level trends also align well with the realised trends.
+The prior predictions for GAMYE models fit best for the 10 and 50-year trends and tend to suggest much more variation in the short-term.
+Arguably, the priors for the scale of the year-effects may be too wide, because 1-year trends from the GAMYE generally include large amounts of prior mass at values greater than those commonly observed in the realised data.
+By contrast, the first difference predictions align most closely with the 1-year trends and suggest that extreme values of long-term trends are less probable.
+
+```{r, echo=FALSE, warning=FALSE}
+print(sd_overview)
+```
+
+The prior distributions of the standard deviation of trends among regions are more complicated.
+These priors vary among the lengths of the trends and the models.
+We selected our priors to balance between implying too much variation in the short-term trends and a regularizing effect on the variation in the long-term trends.
+The first-difference priors for the spatial and non-spatial models align well with the realised distribution of the 1-year trends, and also provide some regularisation on the variation in long-term trends.
+By contrast, the independent estimation of trends among regions in the non-hierarchical version of the first-difference model suggests greater variance in 1-year trends and a much narrower range of variation in long-term trend variation, than is observed in the realised data.
+For the GAMYE models, the variation in the 1-year trends is greatly over estimated, due to the influence of the random annual fluctuations that vary independently among strata.
+These priors also have a similar regularizing influence on the variation in long-term trends.
+
+We suggest that this regularizing effect on the variation in long-term trends is desirable.
+
+-   These are only priors, and so with data to support greater variation among regions, the model predictions will support that greater variation.
+
+-   Without a regularizing influence from the model, sampling error in data-sparse regions can lead to apparently extreme trend estimates that may have an undesirable effect on the composite survey-wide trend estimates.
+
+-   The regularizing effect on long-term trends still includes some very extreme levels of variation.
+    For example, most of the priors here suggest that standard deviations in trends among regions are unlikely to be \> 6-7%/year.
+    This level of variation among regions in a 50-year trend implies that on-average, a species with an overall stable population will include regions that have 50-year trends of +7%/year and have therefore increased by more than 2000%, and regions that have -7%/year trends and have therefore decreased by 97%.

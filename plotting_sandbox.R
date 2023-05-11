@@ -21,8 +21,7 @@ HDL <- function(x,int,upper = TRUE){
 source("functions/posterior_summary_functions.R")
 source("functions/map_trends.R")
 source("functions/trend_functions.R")
-#species <- "Yellow-headed Blackbird"
-#species <- "Pacific Wren"
+
 species <- "Eastern Whip-poor-will"
 
 stratification <- "bbs_usgs"
