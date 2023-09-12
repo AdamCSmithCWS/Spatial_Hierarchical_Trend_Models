@@ -1,17 +1,75 @@
 ## cross-validation for bbs models
 #setwd("C:/GitHub/Spatial_hierarchical_trend_models")
-setwd( "C:/Users/SmithAC/Documents/GitHub/Spatial_Hierarchical_Trend_Models")
+#setwd( "C:/Users/SmithAC/Documents/GitHub/Spatial_Hierarchical_Trend_Models")
 
 library(bbsBayes2)
 library(tidyverse)
 
-species <- "Carolina Wren"
-sp_n <- search_species(species)$aou
 
-stratification <- "bbs_usgs"
-model = c("first_diff")
+comparisons <- data.frame(species = c("Wood Thrush",
+                                      "Eastern Whip-poor-will",
+                                      "Eastern Whip-poor-will",
+                                      "Carolina Wren",
+                                      "Baird's Sparrow",
+                                      "Baird's Sparrow",
+                                      "Scissor-tailed Flycatcher",
+                                      "Scissor-tailed Flycatcher",
+                                      "Rufous Hummingbird",
+                                      "Rufous Hummingbird",
+                                      "Bewick's Wren",
+                                      "Mountain Bluebird"),
+                          sp_n = c(7550,
+                                   4171,
+                                   4171,
+                                   7180,
+                                   5450,
+                                   5450,
+                                   4430,
+                                   4430,
+                                   4330,
+                                   4330,
+                                   7190,
+                                   7680),
+                          model = c("gamye",
+                                    "gamye",
+                                    "first_diff",
+                                    "first_diff",
+                                    "first_diff",
+                                    "gamye",
+                                    "first_diff",
+                                    "gamye",
+                                    "first_diff",
+                                    "gamye",
+                                    "first_diff",
+                                    "gamye"),
+                          stratification = c("bbs_usgs",
+                                             "bbs_usgs",
+                                             "bbs_usgs",
+                                             "bbs_usgs",
+                                             "latlong",
+                                             "latlong",
+                                             "latlong",
+                                             "latlong",
+                                             "latlong",
+                                             "latlong",
+                                             "bbs_usgs",
+                                             "bbs_usgs"))
+
+
+
+# Data preparation for Cross-validation -----------------------------
+# wd setting may be necessary to run outside of RStudio for more stable behaviour
+#setwd( "C:/Users/SmithAC/Documents/GitHub/Spatial_Hierarchical_Trend_Models")
 
 model_variants <- c("hier","spatial")
+
+for(j in 1:nrow(comparisons)){
+  
+  
+species <- comparisons[j,"species"]
+sp_n <- comparisons[j,"sp_n"]
+stratification <- comparisons[j,"stratification"]
+model <- comparisons[j,"model"]
 
 s <- stratify(stratification,species)
 p <- prepare_data(s, min_n_routes = 1)
@@ -35,26 +93,26 @@ sp<-prepare_spatial(p,map)
          
   
   
+}
+  
    
   
 
-# fitting by variant in k separate r sessions -----------------------------
+# Fitting loop by species model variant -----------------------------------
 
-  setwd( "C:/Users/SmithAC/Documents/GitHub/Spatial_Hierarchical_Trend_Models")
+
+
+for(j in 1:nrow(comparisons)){
   
-  library(bbsBayes2)
-  library(tidyverse)
   
-  species <- "Carolina Wren"
-  sp_n <- search_species(species)$aou
+  species <- comparisons[j,"species"]
+  sp_n <- comparisons[j,"sp_n"]
+  stratification <- comparisons[j,"stratification"]
+  model <- comparisons[j,"model"]
   
-  stratification <- "bbs_usgs"
-  model = c("first_diff")
-  
-  model_variants <- c("hier","spatial")
-  
-k <- # setting k to one of 1:10 in each separate R session
-  
+
+#k <- # setting k to one of 1:10 in each separate R session
+ for(k in 1:10){ 
   for(variant in model_variants){
 
 m_sel <- readRDS(paste0("data/cv_prepared_",model,"_",variant,"_",sp_n,".rds"))
@@ -74,6 +132,10 @@ m_sel <- readRDS(paste0("data/cv_prepared_",model,"_",variant,"_",sp_n,".rds"))
   
 }
 
+}
+
+  
+}
 
 
 # compile cv results ------------------------------------------------------
@@ -81,20 +143,9 @@ m_sel <- readRDS(paste0("data/cv_prepared_",model,"_",variant,"_",sp_n,".rds"))
 
 # Loop over species and model comparisons ---------------------------------
 
-comparisons <- data.frame(species = c("Wood Thrush",
-                                       "Eastern Whip-poor-will",
-                                       "Eastern Whip-poor-will",
-                                       "Carolina Wren"),
-                           sp_n = c(7550,
-                                    4171,
-                                    4171,
-                                    7180),
-                           model = c("gamye",
-                                     "gamye",
-                                     "first_diff",
-                                     "first_diff"))
 
-stratification <- "bbs_usgs"
+
+
 model_variants <- c("hier","spatial")
 sum_cv <- NULL
 cv_wide <- NULL
@@ -149,13 +200,13 @@ for(variant in model_variants){
 
 cv_wide <- bind_rows(cv_wide,cv_wide_s)
 
-
+ 
 
 }#end i loop
 
 
 
-
+# summed lppd by species model variant
 totals <- sum_cv %>% 
   group_by(model_variant,model,species) %>% 
   summarise(sum_lppd = sum(mean),
@@ -163,9 +214,11 @@ totals <- sum_cv %>%
             sd_lppd = sd(mean)) %>% 
   arrange(model,species)
 
+# point-wise differences spatial - hierarchical (so positive = higher lppd with spatial)
 diffs <- cv_wide %>%
   mutate(diff_lppd = spatial_lppd - hier_lppd)
-
+# simple summary of species and model differences including approximate z-score
+# positive values = support for spatial model.
 sp_diff_summary <- diffs %>% 
   group_by(species,model) %>% 
   summarise(mean = mean(diff_lppd),
@@ -176,7 +229,9 @@ sp_diff_summary <- diffs %>%
 
 
 diff_sum_stratum <- diffs %>% 
-  #filter(year < 2000) %>% 
+  # filter(species == "Baird's Sparrow",
+  #        model == "first_diff",
+  #        year > 1990) %>% 
   group_by(strata_name, species, model) %>% 
   summarise(mean_diff = mean(diff_lppd),
             n = n(),
