@@ -886,3 +886,8 @@ p<-ggplot()+coord_flip()+
 
 p+annotate(geom="text",x=c(8.4,3.4),y=c(24,24),label=c("BBS USGS","Lat Long"))
 
+pdf("Figures/Figure_7_CV.pdf",
+    width = 7,
+    height = 7)
+print(p)
+dev.off()
