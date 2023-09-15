@@ -884,7 +884,8 @@ p<-ggplot()+coord_flip()+
         plot.margin = unit(c(1,4,1,1),"mm"),
         axis.title = element_text(size = 9))
 
-p+annotate(geom="text",x=c(8.4,3.4),y=c(24,24),label=c("BBS USGS","Lat Long"))
+p<-p+annotate(geom="text",x=c(8.4,3.4),y=c(24,24),label=c("BBS USGS","Lat Long"))
+
 
 pdf("Figures/Figure_7_CV.pdf",
     width = 7,
