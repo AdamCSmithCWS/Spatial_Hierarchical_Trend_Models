@@ -80,17 +80,28 @@ sp<-prepare_spatial(p,map)
 #variant <- model_variants[1]
 
 
-
+# 
   m_spatial <- prepare_model(sp,model,
                          model_variant = "spatial",
-                         calculate_cv = TRUE) 
+                         calculate_cv = TRUE)
   saveRDS(m_spatial,paste0("data/cv_prepared_",model,"_spatial_",sp_n,".rds"))
-  
+
   m_hier <- prepare_model(p,model,
                              model_variant = "hier",
-                             calculate_cv = TRUE) 
+                             calculate_cv = TRUE)
   saveRDS(m_hier,paste0("data/cv_prepared_",model,"_hier_",sp_n,".rds"))
-         
+
+
+  m_spatialfull <- prepare_model(sp,model,
+                             model_variant = "spatial",
+                             calculate_cv = FALSE) 
+  saveRDS(m_spatialfull,paste0("data/cv_prepared_",model,"_spatial_full_",sp_n,".rds"))
+  
+  m_hierfull <- prepare_model(p,model,
+                          model_variant = "hier",
+                          calculate_cv = FALSE) 
+  saveRDS(m_hierfull,paste0("data/cv_prepared_",model,"_hier_full_",sp_n,".rds"))
+  
   
   
 }
@@ -211,8 +222,23 @@ totals <- sum_cv %>%
   group_by(model_variant,model,species) %>% 
   summarise(sum_lppd = sum(mean),
             mean_lppd = mean(mean),
-            sd_lppd = sd(mean)) %>% 
+            se_lppd = sd(mean)/sqrt(n())) %>% 
   arrange(model,species)
+
+totals_plot <- ggplot(data = totals,
+                      aes(x = species,y = mean_lppd, group = model, colour = model_variant))+
+  geom_point(position = position_dodge(width = 0.4))+
+  facet_wrap(vars(model))+
+  coord_flip()
+
+totals_plot
+
+totals_wide <- totals %>% 
+  select(species,model,model_variant,mean_lppd) %>% 
+  mutate(mean_lppd = round(mean_lppd,3)) %>% 
+  pivot_wider(names_from = model_variant,
+              values_from = mean_lppd) %>% 
+  arrange(species,model)
 
 # point-wise differences spatial - hierarchical (so positive = higher lppd with spatial)
 diffs <- cv_wide %>%
@@ -221,33 +247,58 @@ diffs <- cv_wide %>%
 # positive values = support for spatial model.
 sp_diff_summary <- diffs %>% 
   group_by(species,model) %>% 
-  summarise(mean = mean(diff_lppd),
-            sd = sd(diff_lppd),
+  summarise(mean = round(mean(diff_lppd),3),
+            sd = round(sd(diff_lppd),3),
             n = n(),
-            z = mean/(sd/sqrt(n)),
-            .groups = "keep")
+            z = round(mean/(sd/sqrt(n)),3),
+            .groups = "keep") %>% 
+  select(species,model,z) %>% 
+  left_join(.,comparisons,by = c("species","model")) %>% 
+  select(-c(sp_n)) %>% 
+  left_join(totals_wide,by = c("species","model")) %>% 
+  arrange(stratification,species)
+
+write.csv(sp_diff_summary,
+          "Figures/cv_diff_summary.csv")
+
+z_plot <- ggplot(data = sp_diff_summary,
+                      aes(x = species,y = z))+
+  geom_point(position = position_dodge(width = 0.4))+
+  coord_flip(ylim = c(0,NA))+
+  facet_wrap(vars(model), scales = "free")
+
+z_plot
 
 
-diff_sum_stratum <- diffs %>% 
-  # filter(species == "Baird's Sparrow",
-  #        model == "first_diff",
-  #        year > 1990) %>% 
-  group_by(strata_name, species, model) %>% 
-  summarise(mean_diff = mean(diff_lppd),
-            n = n(),
-            sd_diff = sd(diff_lppd),
-            z_diff = mean_diff/(sd(diff_lppd)/sqrt(n)))
 
-map<-load_map(stratify_by = stratification)
 
-diff_map <- map %>% 
-  inner_join(diff_sum_stratum,
-             by = "strata_name")
-diff_map_plot <- ggplot()+
-  geom_sf(data = diff_map,
-          aes(fill = z_diff))+
-  colorspace::scale_fill_continuous_diverging()+
-  theme_bw()+
-  facet_wrap(vars(model,species))
-diff_map_plot
+
+# Fit full datasets for visualisation -------------------------------------
+
+
+for(j in 1:nrow(comparisons)){
+  
+  
+  species <- comparisons[j,"species"]
+  sp_n <- comparisons[j,"sp_n"]
+  stratification <- comparisons[j,"stratification"]
+  model <- comparisons[j,"model"]
+  
+  
+  for(variant in model_variants){
+    
+    m_sel <- readRDS(paste0("data/cv_prepared_",model,"_",variant,"_full_",sp_n,".rds"))
+    m_tmp <- run_model(m_sel,
+                       refresh = 500,
+                       output_dir = "output",
+                       output_basename = paste0(sp_n,"_",model,"_",variant,"_full"))
+
+    
+    
+    print(paste(model,variant))
+    
+  }
+  
+  
+}  
 
