@@ -271,6 +271,41 @@ z_plot
 
 
 
+# Cross-validation z-score figure -----------------------------------------
+
+cv_diff<-sp_diff_summary#read.csv("second submission\\cv_diff_summary.csv")
+
+#set order for species
+cv_diff$species<-factor(
+  cv_diff$species,levels=c("Scissor-tailed Flycatcher",
+                           "Baird's Sparrow","Rufous Hummingbird","Carolina Wren",
+                           "Bewick's Wren","Mountain Bluebird","Wood Thrush","Eastern Whip-poor-will"))
+#bar graph
+p<-ggplot()+coord_flip()+
+  geom_bar(data=cv_diff,aes(x=species,y=z,fill=model),
+           stat="identity",position=position_dodge2(width=0.9,preserve="single"))+
+  theme_classic()+
+  scale_fill_viridis_d(labels=c("First-difference","GAMYE"),
+                       begin = 0.2,end = 0.9)+#,values=c("#440154FF","#FDE725FF"))+
+  geom_vline(aes(xintercept=3.6),colour="grey40",linetype="dashed")+
+  geom_hline(aes(yintercept = 0), colour = "grey40")+
+  xlab("")+ylab("Z-score point-wise difference in lppd \n (spatial – non-spatial)")+
+  guides(fill=guide_legend(title="Model", reverse = TRUE))+
+  theme(legend.position = "right",
+        legend.margin = margin(0,0,0,0),
+        plot.margin = unit(c(1,4,1,1),"mm"),
+        axis.title = element_text(size = 9))
+
+p<-p+annotate(geom="text",x=c(8.4,3.4),y=c(29,29),
+              label=c("Broad-grained Stratification","Fine-grained Stratification"),
+              hjust = 1)
+
+
+pdf("Figures/Figure_7.pdf",
+    width = 7,
+    height = 7)
+print(p)
+dev.off()
 
 
 # Fit full datasets for visualisation -------------------------------------
