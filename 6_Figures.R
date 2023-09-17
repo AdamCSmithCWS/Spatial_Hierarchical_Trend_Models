@@ -227,13 +227,19 @@ dev.off()
 
 
 # non-spatial gamye
-model <- "gamye"
+model <- "first_diff"
 
 fit <- readRDS(paste0("output/",paste(species,model,"hier",sep = "_"),".rds"))
 
+if(model == "gamye"){
 inds <- generate_indices(fit,
                          regions = "stratum",
                          alternate_n = "n_smooth")
+}else{
+  inds <- generate_indices(fit,
+                           regions = "stratum",
+                           alternate_n = "n") 
+}
 
 trends <- generate_trends(inds,
                           min_year = 2007) 
@@ -246,16 +252,16 @@ trends <- trends$trends%>%
 t_plot <- bind_rows(t_plot,
                     trends)
 
-t_plot <- t_plot %>% 
+t_plot1 <- t_plot %>% 
   mutate(model_plot = ifelse(model %in% c("gam","gamye"),
                              str_to_upper(model),
                              "First-difference"),
          model_variant = str_to_title(model_variant)) %>% 
-  filter(model == "gamye")
+  filter(model == model)
 
 
 
-m2 <- map_trends(trends = t_plot,
+m2 <- map_trends(trends = t_plot1,
                  base_map_blank = map_base,
                  title = "",
                  region_name = "strata_name",
@@ -266,7 +272,7 @@ m2 <- map_trends(trends = t_plot,
                  legend_title = "Trend")
 
 
-m2_se <- map_trends(trends = t_plot,
+m2_se <- map_trends(trends = t_plot1,
                     base_map_blank = map_base,
                     title = "",
                     region_name = "strata_name",
@@ -602,7 +608,7 @@ model <- "gamye"
                     fill = variant_plot),
                 alpha = 0.3)+
     geom_line(aes(colour = variant_plot))+
-    scale_colour_viridis_d(end = 0.8,begin = 0.2,
+    scale_colour_viridis_d(end = 0.9,begin = 0.1,
                            aesthetics = c("colour","fill"),
                            direction = -1)+
     guides( colour = guide_legend(title = "Model Variant"),
@@ -740,7 +746,7 @@ model <- "gamye"
                               y = abs_trend,
                               colour = variant_plot)) +
     geom_point(alpha = 0.8)+
-    scale_colour_viridis_d(end = 0.8,begin = 0.2,
+    scale_colour_viridis_d(end = 0.9,begin = 0.1,
                            aesthetics = c("colour"),
                            direction = -1)+
     scale_x_continuous(trans = "sqrt")+
@@ -798,7 +804,7 @@ model <- "gamye"
                     fill = variant_plot),
                 alpha = 0.3)+
     geom_line(aes(colour = variant_plot))+
-    scale_colour_viridis_d(end = 0.6,begin = 0.2,
+    scale_colour_viridis_d(end = 0.6,begin = 0.1,
                            aesthetics = c("colour","fill"),
                            direction = -1)+
     guides( colour = guide_legend(title = "Model Variant"),
@@ -816,7 +822,7 @@ model <- "gamye"
                     fill = variant_plot),
                 alpha = 0.3)+
     geom_line(aes(colour = variant_plot))+
-    scale_colour_viridis_d(end = 0.6,begin = 0.2,
+    scale_colour_viridis_d(end = 0.6,begin = 0.1,
                            aesthetics = c("colour","fill"),
                            direction = -1)+
     guides( colour = guide_legend(title = "Model Variant"),

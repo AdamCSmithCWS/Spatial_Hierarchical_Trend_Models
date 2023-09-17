@@ -188,10 +188,11 @@ p <- prepare_data(s,
                   min_year = 2000)
 
 
-
+model <- "gamye"
+model <- "first_diff"
 
 pm <- prepare_model(p,
-                    model = "gamye",
+                    model = model, 
                     model_variant = "hier")
 
 fit <- run_model(pm,
@@ -201,7 +202,7 @@ fit <- run_model(pm,
                  iter_sampling = 4000,
                  thin = 2,
                  output_dir = "output",
-                 output_basename = paste(species,"gamye","hier",sep = "_"))
+                 output_basename = paste(species,model,"hier",sep = "_"))
 
 
 
@@ -210,7 +211,7 @@ summ <- get_summary(fit)
 summ <- summ %>% 
   mutate(variable_type = stringr::str_extract(variable, "^\\w+"))
 
-saveRDS(summ,paste0("output/",aou,"_","gamye","_","hier","_param_summary.rds"))
+saveRDS(summ,paste0("output/",aou,"_",model,"_","hier","_param_summary.rds"))
 
 
 

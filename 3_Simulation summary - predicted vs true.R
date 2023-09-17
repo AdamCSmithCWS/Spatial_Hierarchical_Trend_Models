@@ -397,9 +397,9 @@ inds_out <- bind_rows(inds_out,ind_vars)
 }
 
 
-saveRDS(inds_out,"output/all_saved_true_estimated_indices.rds")
+#saveRDS(inds_out,"output/all_saved_true_estimated_indices.rds")
 
-
+inds_out <- readRDS("output/all_saved_true_estimated_indices.rds")
 
 
 # Simulation_trajectory ---------------------------------------------------
@@ -452,11 +452,13 @@ inds_plot <- inds_out %>%
   
   inds_demo <- ggplot(data = inds_plot,
                       aes(x = year,y = index))+
-  geom_line(aes(x = year,
-                y = expected_mean_count),
-            colour = "black",
-            alpha = 0.9,
-            linewidth = 1)+
+
+    # geom_line(aes(x = year,
+    #             y = expected_mean_count),
+    #         colour = grey(0.8),
+    #         #alpha = 0.9,
+    #         linewidth = 0.7,
+    #         linetype = 3)+
     geom_line(aes(colour = variant_plot),
               linewidth = 1)+
     #geom_line(data = ind_smooth,
@@ -468,6 +470,11 @@ inds_plot <- inds_out %>%
                     ymax = index_q_0.95,
                     fill = variant_plot),
                 alpha = 0.2)+
+    geom_line(aes(x = year,
+                  y = expected_mean_count),
+              colour = "black",#grey(0.3),
+              #alpha = 0.3,
+              linewidth = 0.6)+
     scale_colour_viridis_d(end = 0.6,begin = 0.2,
                            aesthetics = c("colour","fill"),
                            direction = -1)+
