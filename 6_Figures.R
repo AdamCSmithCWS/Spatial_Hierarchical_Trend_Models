@@ -1,7 +1,6 @@
 #### Figures for publication
 library(tidyverse)
 library(bbsBayes2)
-library(cmdstanr)
 library(posterior)
 library(sf)
 library(patchwork)
@@ -354,7 +353,153 @@ m2_se <- map_trends(trends = t_plot,
                     legend_title = "SE of Trend")
 
 m2a <- m2 + m2_se + plot_layout(nrow = 2)
+pdf("figures/Figure_S_extra.pdf",
+    width = 7.5,
+    height = 6)
+m2a
+dev.off()
+
+
+
+
+# TRES comparison ---------------------------------------------------------
+
+
+### facet plot of different models
+
+species <- "Tree Swallow"
+sp_n <- 6140
+
+
+model <- "first_diff"
+model_variants <- c("spatial")
+stratification <- "latlong"
+t_plot <- NULL
+
+for(model_variant in model_variants){
+  
+  if(model_variant == "non-spatial"){variant <- "hier"}else{variant <- "spatial"}
+  fit <- readRDS(paste0("output/",species,"_",model,"_",variant,".rds"))
+  
+  inds <- generate_indices(fit)
+  
+  trends <- generate_trends(inds,min_year = 2007)
+  
+  
+  
+  trends <- trends$trends%>% 
+    mutate(model = model,
+           model_variant = model_variant,
+           trend_se = width_of_95_percent_credible_interval/4,
+           strata_name = region)
+  
+  t_plot <- bind_rows(t_plot,
+                      trends) 
+  
+  t_plot <- t_plot %>% 
+    mutate(model_plot = ifelse(model %in% c("gam","gamye"),
+                               str_to_upper(model),
+                               "First-difference"),
+           model_variant = str_to_title(model_variant))
+  
+}
+
+map_base <- load_map(stratification)
+m2 <- map_trends(trends = t_plot,
+                 base_map_blank = map_base,
+                 title = "",
+                 region_name = "strata_name",
+                 # facetgrid = TRUE,
+                 # facet_2 = "model_variant",
+                 plot_trend = TRUE,
+                 #variable = "trend_se",
+                 legend_title = "Trend")
+
+
+m2_se <- map_trends(trends = t_plot,
+                    base_map_blank = map_base,
+                    title = "",
+                    region_name = "strata_name",
+                    # facetgrid = TRUE,
+                    # facet_2 = "model_variant",
+                    plot_trend = FALSE,
+                    variable = "trend_se",
+                    legend_title = "SE of Trend")
+
+m2a <- m2 + m2_se + plot_layout(nrow = 2)
 pdf("figures/Figure_S9.pdf",
+    width = 7.5,
+    height = 10)
+m2a
+dev.off()
+
+# LOWA comparison ---------------------------------------------------------
+
+
+### facet plot of different models
+
+species <- "Louisiana Waterthrush"
+sp_n <- 6760
+# species <- "Long-billed Curlew"
+# sp_n <- 2640
+
+model <- "first_diff"
+model_variants <- c("spatial")
+stratification <- "latlong"
+t_plot <- NULL
+
+for(model_variant in model_variants){
+  
+  if(model_variant == "non-spatial"){variant <- "hier"}else{variant <- "spatial"}
+  fit <- readRDS(paste0("output/",species,"_",model,"_",variant,".rds"))
+  
+  inds <- generate_indices(fit)
+  
+  trends <- generate_trends(inds,min_year = 2007)
+  
+  
+  
+  trends <- trends$trends%>% 
+    mutate(model = model,
+           model_variant = model_variant,
+           trend_se = width_of_95_percent_credible_interval/4,
+           strata_name = region)
+  
+  t_plot <- bind_rows(t_plot,
+                      trends) 
+  
+  t_plot <- t_plot %>% 
+    mutate(model_plot = ifelse(model %in% c("gam","gamye"),
+                               str_to_upper(model),
+                               "First-difference"),
+           model_variant = str_to_title(model_variant))
+  
+}
+
+map_base <- load_map(stratification)
+m2 <- map_trends(trends = t_plot,
+                 base_map_blank = map_base,
+                 title = "",
+                 region_name = "strata_name",
+                 # facetgrid = TRUE,
+                 # facet_2 = "model_variant",
+                 plot_trend = TRUE,
+                 #variable = "trend_se",
+                 legend_title = "Trend")
+
+
+m2_se <- map_trends(trends = t_plot,
+                    base_map_blank = map_base,
+                    title = "",
+                    region_name = "strata_name",
+                    # facetgrid = TRUE,
+                    # facet_2 = "model_variant",
+                    plot_trend = FALSE,
+                    variable = "trend_se",
+                    legend_title = "SE of Trend")
+
+m2a <- m2 + m2_se + plot_layout(nrow = 2)
+pdf("figures/Figure_S10.pdf",
     width = 7.5,
     height = 6)
 m2a

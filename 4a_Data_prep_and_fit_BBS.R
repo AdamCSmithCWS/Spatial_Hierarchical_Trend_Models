@@ -118,11 +118,13 @@ for(model in models){
   
   
   s <- stratify(by = stratification,
-                species = species)
+                species = species,
+                release = 2022)
   
   
   p <- prepare_data(s,
-                    min_year = 2000)
+                    min_year = 2000,
+                    min_n_routes = 1)
   
     ps <- prepare_spatial(p,
                           strata_map = load_map(stratification))
@@ -139,7 +141,7 @@ for(model in models){
                    refresh = 400,
                    adapt_delta = 0.8,
                    iter_warmup = 1000,
-                   iter_sampling = 4000,
+                   iter_sampling = 2000,
                    thin = 2,
                    output_dir = "output",
                    output_basename = paste(species,model,model_variant,sep = "_"))

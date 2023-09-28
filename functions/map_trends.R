@@ -125,7 +125,7 @@ if(plot_trend){
   if(plot_trend){
     plot_out <- plot_out +
     scale_fill_manual(values = pal,
-                      guide = guide_legend(title = l_title))
+                      guide = guide_legend(title = l_title, reverse = TRUE))
   }else{
     plot_out <- plot_out +
       scale_fill_viridis_c(guide = guide_colourbar(title = l_title))
