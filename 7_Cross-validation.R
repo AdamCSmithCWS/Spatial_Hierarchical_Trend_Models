@@ -259,8 +259,12 @@ sp_diff_summary <- diffs %>%
   left_join(totals_wide,by = c("species","model")) %>% 
   arrange(stratification,species)
 
+
+# Export data for Table S1 ------------------------------------------------
 write.csv(sp_diff_summary,
           "Figures/cv_diff_summary.csv")
+
+
 
 z_plot <- ggplot(data = sp_diff_summary,
                       aes(x = species,y = z))+
@@ -272,7 +276,7 @@ z_plot
 
 
 
-# Cross-validation z-score figure -----------------------------------------
+# Figure 7 -----------------------------------------
 
 cv_diff<-sp_diff_summary#read.csv("second submission\\cv_diff_summary.csv")
 

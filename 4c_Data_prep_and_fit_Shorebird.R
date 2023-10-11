@@ -2,7 +2,7 @@
 library(tidyverse)
 library(cmdstanr)
 library(sf)
-setwd("C:/Users/SmithAC/Documents/GitHub/Spatial_Hierarchical_Trend_Models")
+# setwd("C:/Users/SmithAC/Documents/GitHub/Spatial_Hierarchical_Trend_Models")
 
 
 source("functions/neighbours_define.R")
@@ -12,7 +12,6 @@ sp = species
 
 
 load("Data/shorebird_full_observation_dataset.Rdata")
-#load("Data/shorebird_site_map.RData") 
 load("data/shorebird_hexagon_grid.RData")
 
 ## file necessary to identify separate regions for seasonal smooths

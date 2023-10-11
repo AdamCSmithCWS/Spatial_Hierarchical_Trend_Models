@@ -1,6 +1,6 @@
 
-setwd("C:/GitHub/Spatial_hierarchical_trend_models")
-setwd( "C:/Users/SmithAC/Documents/GitHub/Spatial_Hierarchical_Trend_Models")
+#setwd("C:/GitHub/Spatial_hierarchical_trend_models")
+#setwd( "C:/Users/SmithAC/Documents/GitHub/Spatial_Hierarchical_Trend_Models")
 
 library(bbsBayes2)
 library(tidyverse)
@@ -13,15 +13,16 @@ models = c("gamye","first_diff")
 
 model_variants <- c("nonhier","hier","spatial")
 
+s <- stratify(by = stratification,
+              species = species,
+              release = 2022)
+#saveRDS(s,paste0("data/BBS_stratified_data_",species,".rds"))
 
 for(model in models){
   for(model_variant in model_variants){
     if(model == "gamye" & model_variant == "nonhier"){next}
-s <- stratify(by = stratification,
-              species = species,
-              release = 2022)
 
-
+    s<- readRDS(paste0("data/BBS_stratified_data_",species,".rds"))
 p <- prepare_data(s)
 
 if(model_variant == "spatial"){

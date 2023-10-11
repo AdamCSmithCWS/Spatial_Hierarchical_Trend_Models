@@ -1,6 +1,6 @@
 #fit simulated data
 
-setwd("C:/Users/SmithAC/Documents/GitHub/Spatial_Hierarchical_Trend_Models")
+#setwd("C:/Users/SmithAC/Documents/GitHub/Spatial_Hierarchical_Trend_Models")
 library(bbsBayes2)
 library(tidyverse)
 
