@@ -3,8 +3,9 @@
 
 
 
+
 #setwd("C:/GitHub/Spatial_hierarchical_trend_models")
-setwd( "C:/Users/SmithAC/Documents/GitHub/Spatial_Hierarchical_Trend_Models")
+#setwd( "C:/Users/SmithAC/Documents/GitHub/Spatial_Hierarchical_Trend_Models")
 
 
 # load setup --------------------------------------------------------------
