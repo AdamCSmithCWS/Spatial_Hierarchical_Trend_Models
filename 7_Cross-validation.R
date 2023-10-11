@@ -71,7 +71,8 @@ sp_n <- comparisons[j,"sp_n"]
 stratification <- comparisons[j,"stratification"]
 model <- comparisons[j,"model"]
 
-s <- stratify(stratification,species)
+s <- stratify(stratification,species,
+              release = 2022)
 p <- prepare_data(s, min_n_routes = 1)
 map<-load_map(stratify_by = stratification)
 sp<-prepare_spatial(p,map)

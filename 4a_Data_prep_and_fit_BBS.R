@@ -18,7 +18,8 @@ for(model in models){
   for(model_variant in model_variants){
     if(model == "gamye" & model_variant == "nonhier"){next}
 s <- stratify(by = stratification,
-              species = species)
+              species = species,
+              release = 2022)
 
 
 p <- prepare_data(s)
@@ -183,7 +184,8 @@ print(map)
 
 
 s <- stratify(by = stratification,
-              species = species)
+              species = species,
+              release = 2022)
 
 
 p <- prepare_data(s,

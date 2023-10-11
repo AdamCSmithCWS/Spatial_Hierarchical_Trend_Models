@@ -250,9 +250,11 @@ trend_comp_plot = ggplot(data = trend_comp,
   coord_cartesian(ylim = c(-2,2))+
   facet_wrap(vars(peripheral))+
   labs(title = "GAMYE")+
+  scale_colour_viridis_d(begin = 0.1,end=0.9)+
   guides( colour = guide_legend(title = "Simulated mean count"))+
-  ylab("Difference in trend error \n (Non-spatial-Spatial)")+
-  geom_hline(yintercept = 0,alpha = 0.5)
+  ylab("Difference in trend error \n (Non-spatial - Spatial)")+
+  geom_hline(yintercept = 0,alpha = 0.5)+
+  theme_bw()
 
 
 
@@ -262,10 +264,12 @@ trend_comp_plot2 = ggplot(data = trend_comp,
   geom_boxplot()+
   coord_cartesian(ylim = c(-2,2))+
   facet_wrap(vars(peripheral))+
+  scale_colour_viridis_d(begin = 0.1,end=0.9)+
   guides( colour = guide_legend(title = "Simulated mean count"))+
-  labs(title = "First-Difference")+
+  labs(title = "First-difference")+
   ylab("(Non-spatial - Spatial)")+
-  geom_hline(yintercept = 0,alpha = 0.5)
+  geom_hline(yintercept = 0,alpha = 0.5)+
+  theme_bw()
 
 
 trend_comp_plot3 = ggplot(data = trend_comp,
@@ -274,10 +278,12 @@ trend_comp_plot3 = ggplot(data = trend_comp,
   geom_boxplot()+
   coord_cartesian(ylim = c(-2,2))+
   facet_wrap(vars(peripheral))+
-  labs(title = "First-Difference")+
+  labs(title = "First-difference")+
+  scale_colour_viridis_d(begin = 0.1,end=0.9)+
   guides( colour = guide_legend(title = "Simulated mean count"))+
   ylab("(Non-hierarchical - Non-spatial)")+
-  geom_hline(yintercept = 0,alpha = 0.5)
+  geom_hline(yintercept = 0,alpha = 0.5)+
+  theme_bw()
 
 
 
@@ -442,7 +448,7 @@ inds_plot <- inds_out %>%
          mean_true_abundance == 1) %>% 
   mutate(strata_name = factor(strata_name,levels = st_sel,
                               ordered = TRUE),
-         model_plot = ifelse(model == "first_diff","First Difference","GAMYE")) %>% 
+         model_plot = ifelse(model == "first_diff","First-difference","GAMYE")) %>% 
   left_join(.,model_variant_names,
             by = "model_variant") %>% 
   filter(variant_plot != "Non-hierarchical")

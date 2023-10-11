@@ -18,7 +18,8 @@ species_f <- gsub(species,pattern = " ",replacement = "_") #name without spaces
 stratification = "bbs_usgs"
 
 s <- stratify(by = stratification,
-              species = species)
+              species = species,
+              release = 2022)
 
 prep_data <- prepare_data(s)
 
