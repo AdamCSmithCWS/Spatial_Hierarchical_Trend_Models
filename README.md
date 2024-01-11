@@ -1,6 +1,6 @@
 # Spatial_Hierarchical_Trend_Models
 
-Code and data to support Smith et al. 2023 (in press at Ornithological Applications) describing spatially explicit models for long-term monitoring data of birds in North America.
+Code and data to support [Smith et al. 2023](https://doi.org/10.1093/ornithapp/duad056) describing spatially explicit models for long-term monitoring data of birds in North America.
 
 Adam C Smith, Allison Binley, Lindsay Daly, Brandon PM Edwards, Danielle Ethier, Barbara Frei, David Iles, Timothy D Meehan, Nicole L Michel, Paul A Smith
 
