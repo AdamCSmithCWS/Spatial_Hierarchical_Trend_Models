@@ -56,10 +56,6 @@ data {
   // CBC effort values - party_hours scaled to the mean across all surveys (party_hours/mean(party_hours))
   vector[ncounts] hours;
 
-  // data for spline s(year)
-  int<lower=1> nknots_year;  // number of knots in the basis function for year
-  matrix[nyears, nknots_year] year_basis; // basis function matrix
-  
   // circle inclusion scaling value
   array[nstrata] real nonzeroweight;
 
@@ -135,7 +131,7 @@ transformed parameters {
     real p = sdp * p_raw[strat[i]] + P;  //effort coefficient for stratum i
     real effort_effect = (b*((hours[i]^p)-1))/p; //effort correction for count i
     
-    E[i] =  strata + yeareffect[strat[i],year[i]] + ste;
+    E[i] =  strata + yeareffect[strat[i],year[i]] + ste + effort_effect;
   }
   
   }
@@ -143,19 +139,29 @@ transformed parameters {
   
   
 model {
+  // many priors using a df = 3, t-distribution, which probably has tails that 
+  // are too long. could increase the df. 
   sdnoise ~ student_t(3,0,1); //prior on scale of extra Poisson log-normal variance
   sdste ~ student_t(3,0,1); //prior on sd of site effects
   sdbeta ~ student_t(3,0,0.2); // prior on sd of differences among strata
   sdBETA ~ student_t(3,0,0.2); // prior on sd of mean hyperparameter differences
   sdstrata ~ student_t(3,0,1); //prior on sd of intercept variation
 
+  // spatially varying effort effect
+  b_raw ~ icar_normal(nstrata, node1, node2);//effort slopes by stratum
   
-  b_raw ~ std_normal();//effort slopes by stratum
-  sum(b_raw) ~ normal(0,0.001*nstrata);
+  // optional simple random effort effect
+  // b_raw ~ std_normal();//effort slopes by stratum
+  // sum(b_raw) ~ normal(0,0.001*nstrata);
+  
   sdb ~ normal(0,0.5); //prior on scale of effort slopes
   
-  p_raw ~ std_normal();//effort exponents by stratum
-  sum(p_raw) ~ normal(0,0.001*nstrata);
+  // spatially varying effort effect
+  p_raw ~ icar_normal(nstrata, node1, node2);//effort slopes by stratum
+  
+  // optional simple random effort effect
+  // p_raw ~ std_normal();//effort exponents by stratum
+  // sum(p_raw) ~ normal(0,0.001*nstrata);
   sdp ~ normal(0,0.5); //prior on scale of effort exponents
   
   P ~ std_normal();//effort mean exponent
@@ -172,7 +178,7 @@ model {
   STRATA ~ std_normal();// prior on fixed effect mean intercept
 
 
-//spatial iCAR intercepts and differences by strata
+//spatial iCAR intercepts and annual differences by strata
 for(t in 1:(n_years_m1)){
     beta_raw[,t] ~ icar_normal(nstrata, node1, node2);
 }

@@ -118,7 +118,7 @@ transformed parameters {
     real p = sdp * p_raw[strat[i]] + P;  //effort coefficient for stratum i
     real effort_effect = (b*((hours[i]^p)-1))/p; //effort correction for count i
     
-    E[i] =  strata + yeareffect[strat[i],year[i]] + ste;
+    E[i] =  strata + yeareffect[strat[i],year[i]] + ste + effort_effect;
   }
   
   }
